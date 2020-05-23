@@ -26,7 +26,6 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev": "webpack-dev-server --progress --colors"
-
   },
   "eslintConfig": {
     "extends": "react-app"
