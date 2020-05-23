@@ -1,0 +1,1 @@
+{"androidParam":"","iosParam":"(   export PKG\u003dreact-dates;   npm info \"$PKG\" peerDependencies --json | command sed \u0027s/[\\{\\},]//g ; s/: /@/g; s/ *//g\u0027 | xargs npm install --save \"$PKG\" )"}
