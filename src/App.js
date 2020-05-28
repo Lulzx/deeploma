@@ -145,7 +145,18 @@ class App extends Component {
                             },
                             placeholder: ' '
                         })
-
+                    },
+                    {
+                        text: "Тональный характер",
+                        dataField: "sentiment",
+                        filter: selectFilter({
+                            options: {
+                                0: 'Позитивный',
+                                1: 'Нейтральный',
+                                2: 'Негативный'
+                            },
+                            placeholder: ' '
+                        })
                     }
                 ]
                 this.setState({columns: columns, buttonDisable: this.isReady(), Chosen_SN: SN})
@@ -202,7 +213,18 @@ class App extends Component {
                             },
                             placeholder: ' '
                         })
-
+                    },
+                    {
+                        text: "Тональный характер",
+                        dataField: "sentiment",
+                        filter: selectFilter({
+                            options: {
+                                0: 'Позитивный',
+                                1: 'Нейтральный',
+                                2: 'Негативный'
+                            },
+                            placeholder: ' '
+                        })
                     }
                 ]
                 this.setState({columns: columns, buttonDisable: this.isReady(), Chosen_SN: SN})
@@ -227,7 +249,7 @@ class App extends Component {
         }
 
         this.setState({isLoading: true, SN:Chosen_SN})
-        const url = '/api/statistics?social_network=' + Chosen_SN + '&sm_id=' + sm_ids + '&start_date=' + from_unix + '&end_date=' + to_unix
+        const url = 'https://kozinov.azurewebsites.net/api/statistics?social_network=' + Chosen_SN + '&sm_id=' + sm_ids + '&start_date=' + from_unix + '&end_date=' + to_unix
         fetch(url)
             .then(res => res.json()
                 .then(response => {
