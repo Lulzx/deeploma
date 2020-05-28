@@ -5,6 +5,9 @@
 /.pnp
 .pnp.js
 package-lock.json
+/api/venv/
+/api/__pycache__/
+/api/.gitignore
 
 # testing
 /coverage
