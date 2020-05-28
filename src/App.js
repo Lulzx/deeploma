@@ -227,7 +227,7 @@ class App extends Component {
         }
 
         this.setState({isLoading: true, SN:Chosen_SN})
-        const url = '/statistics?social_network=' + Chosen_SN + '&sm_id=' + sm_ids + '&start_date=' + from_unix + '&end_date=' + to_unix
+        const url = '/api/statistics?social_network=' + Chosen_SN + '&sm_id=' + sm_ids + '&start_date=' + from_unix + '&end_date=' + to_unix
         fetch(url)
             .then(res => res.json()
                 .then(response => {

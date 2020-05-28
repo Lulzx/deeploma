@@ -12,6 +12,7 @@
     "match-sorter": "^4.1.0",
     "moment": "^2.25.3",
     "moment-range": "^4.0.2",
+    "netlify-cli": "^2.52.0",
     "react": "^16.13.1",
     "react-bootstrap": "^1.0.1",
     "react-bootstrap-table-next": "^4.0.2",
