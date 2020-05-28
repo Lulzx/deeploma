@@ -248,18 +248,23 @@ class App extends Component {
             return self.indexOf(value) === index;
         }
 
-        this.setState({isLoading: true, SN:Chosen_SN})
-        const url = 'https://kozinov.azurewebsites.net/api/statistics?social_network=' + Chosen_SN + '&sm_id=' + sm_ids + '&start_date=' + from_unix + '&end_date=' + to_unix
+        this.setState({isLoading: true, SN: Chosen_SN})
+        const url = 'https://kozinov.azurewebsites.net/api/statistics?restype=service&comp=propertiessocial_network=' +
+            Chosen_SN + '&sm_id=' + sm_ids + '&start_date=' + from_unix + '&end_date=' + to_unix
         fetch(url)
             .then(res => res.json()
                 .then(response => {
+                    console.log("data is loaded", response)
                     let data = Object.values(response["response"]["posts"])
+                    console.log("data is writen to variable")
                     let groups = data.map(post => post.group_name)
+                    console.log("groups is writen to variable")
                     groups = groups.filter(onlyUnique)
                     groups = groups.map((group) => {
                         return {value: group, label: group}
                     })
                     this.setState({groups: groups, data: data})
+                    console.log("writing state")
                 }).then(() => this.setState({isLoading: false})))
     }
 
@@ -366,7 +371,7 @@ class App extends Component {
                     <Row className='ml-4 mr-4 mb-4'>
                         <Button variant="primary" size="lg" block
                                 disabled={buttonDisable || isLoading}
-                                onClick={!isLoading && !buttonDisable ? this.load_data.bind(this) : false}>
+                                onClick={!isLoading && !buttonDisable ? this.load_data.bind(this) : undefined}>
                             {isLoading ? 'Загрузка...' : 'Загрузить данные'}
                         </Button>
                     </Row>
