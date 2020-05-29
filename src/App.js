@@ -154,25 +154,25 @@ class App extends Component {
                     {
                         text: "Аномальные просмотры",
                         dataField: "is_anomaly",
-                        filter: selectFilter({
-                            options: {
-                                0: 'Да',
-                                1: 'Нет'
-                            },
-                            placeholder: ' '
-                        })
+                        // filter: selectFilter({
+                        //     options: {
+                        //         0: 'Да',
+                        //         1: 'Нет'
+                        //     },
+                        //     placeholder: ' '
+                        // })
                     },
                     {
                         text: "Тональный характер",
                         dataField: "sentiment",
-                        filter: selectFilter({
-                            options: {
-                                0: 'Позитивный',
-                                1: 'Нейтральный',
-                                2: 'Негативный'
-                            },
-                            placeholder: ' '
-                        })
+                        // filter: selectFilter({
+                        //     options: {
+                        //         0: 'Позитивный',
+                        //         1: 'Нейтральный',
+                        //         2: 'Негативный'
+                        //     },
+                        //     placeholder: ' '
+                        // })
                     }
                 ]
                 this.setState({columns: columns, buttonDisable: this.isReady(), Chosen_SN: SN})
@@ -222,25 +222,25 @@ class App extends Component {
                     {
                         text: "Аномальные просмотры",
                         dataField: "is_anomaly",
-                        filter: selectFilter({
-                            options: {
-                                0: 'Да',
-                                1: 'Нет'
-                            },
-                            placeholder: ' '
-                        })
+                        // filter: selectFilter({
+                        //     options: {
+                        //         0: 'Да',
+                        //         1: 'Нет'
+                        //     },
+                        //     placeholder: ' '
+                        // })
                     },
                     {
                         text: "Тональный характер",
                         dataField: "sentiment",
-                        filter: selectFilter({
-                            options: {
-                                0: 'Позитивный',
-                                1: 'Нейтральный',
-                                2: 'Негативный'
-                            },
-                            placeholder: ' '
-                        })
+                        // filter: selectFilter({
+                        //     options: {
+                        //         0: 'Позитивный',
+                        //         1: 'Нейтральный',
+                        //         2: 'Негативный'
+                        //     },
+                        //     placeholder: ' '
+                        // })
                     }
                 ]
                 this.setState({columns: columns, buttonDisable: this.isReady(), Chosen_SN: SN})
