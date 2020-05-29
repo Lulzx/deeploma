@@ -31,14 +31,14 @@ import filterFactory, {
 import paginationFactory from 'react-bootstrap-table2-paginator';
 import DoubleScrollbar from 'react-double-scrollbar'
 
-const version = '0.1.0'
+const version = '0.1.1'
 
 const expandRow = {
     onlyOneExpanding: true,
     renderer: row => (
         <div>
             <p>Полный текст:</p>
-            <p>{row.text}</p>
+            <p>{row.text}...</p>
         </div>
     )
 };
@@ -310,6 +310,9 @@ class App extends Component {
         this.setState({to: to, buttonDisable: this.isReady()}, this.showFromMonth);
     }
 
+//todo: active columns select
+//todo: export
+//todo: graphs
     render() {
         const {from, to, today, columns, data, buttonDisable, isLoading} = this.state;
         const modifiers = {start: from, end: to};
@@ -377,7 +380,7 @@ class App extends Component {
                             <Helmet>
                             </Helmet>
                         </div>
-                        //todo: active columns select
+
                     </Row>
                     <Row className='ml-4 mr-4 mb-4'>
                         <Form.Group controlId="exampleForm.ControlTextarea1">
@@ -396,7 +399,7 @@ class App extends Component {
                         </Button>
                     </Row>
                     <DoubleScrollbar>
-                        //todo: export
+
                         <BootstrapTable
                             data={data}
                             keyField="index"
@@ -410,8 +413,6 @@ class App extends Component {
                         />
                     </DoubleScrollbar>
                 </Container>
-                //todo: graphs
-
             </>
         );
     }
