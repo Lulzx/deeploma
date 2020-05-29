@@ -20,6 +20,5 @@ package-lock.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/build/
-./api/venv/
-./api/__pycache__/
+/build
+/.idea

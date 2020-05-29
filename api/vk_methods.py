@@ -34,7 +34,7 @@ def cleanText(raw_text):
 
 
 def load_from_vk(group_id, date_from, date_to):
-    headers = ['group_name','members', 'post_date', 'post_link', 'text', 'views', 'likes', 'reposts', 'comments']
+    headers = ['group_name', 'members', 'post_date', 'post_link', 'text', 'views', 'likes', 'reposts', 'comments']
     posts_in_group = []
     offset = 0
     members = get_members(group_id)
@@ -57,9 +57,8 @@ def load_from_vk(group_id, date_from, date_to):
         try:
             response = res.json()['response']
         except:
-            date_ok = False
-            last_try = 2
-            continue
+            if res.json()['error']['error_code'] != 0:
+                raise Exception(group_id, 'channel_not_found')
 
         if response['count'] == 0:  # если в выгрузке пусто, переходим к следующей группе
             date_ok = False
@@ -81,7 +80,7 @@ def load_from_vk(group_id, date_from, date_to):
                     print(post_date)
                     post_link = 'https://vk.com/wall' + str(post['owner_id']) + '_' + str(post['id'])
                     post_text = cleanText(post['text'])
-                    post_info.append((group_name,members, post_date, post_link, post_text,
+                    post_info.append((group_name, members, post_date, post_link, post_text,
                                       post['views']['count'], post['likes']['count'], post['reposts']['count'],
                                       post['comments']['count']))
                     posts_in_group.extend(post_info)

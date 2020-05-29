@@ -29,7 +29,7 @@ def get_reposts_tg(post_id):
 
 
 def load_from_tg(group_id, date_from, date_to):
-    headers = ["group_name", "members", "post_date", "post_link", "text", "views","reposts"]
+    headers = ["group_name", "members", "post_date", "post_link", "text", "views", "reposts"]
 
     offset = 0
     count_ok = True
@@ -50,10 +50,8 @@ def load_from_tg(group_id, date_from, date_to):
         try:
             response = res.json()['response']
         except:
-            print(group_id, ' failed on ', res.json()['error'])
-            count_ok = False
-            continue
-        members = response['channel']['participants_count']
+            raise Exception(group_id, res.json()['error'])
+
         if response['count'] == 0:  # если в выгрузке пусто, переходим к следующей группе
             count_ok = False
             continue
@@ -73,7 +71,7 @@ def load_from_tg(group_id, date_from, date_to):
                 post_text = cleanText(post['text'])
                 reposts = get_reposts_tg(post['link'])
                 post_info.append(
-                    (response['channel']['title'], members, post_date, post['link'], post_text, post['views'],reposts))
+                    (response['channel']['title'], members, post_date, post['link'], post_text, post['views'], reposts))
                 posts_in_group.extend(post_info)
             except:
                 print(post)

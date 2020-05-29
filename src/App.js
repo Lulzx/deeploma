@@ -31,7 +31,7 @@ import filterFactory, {
 import paginationFactory from 'react-bootstrap-table2-paginator';
 import DoubleScrollbar from 'react-double-scrollbar'
 
-const version = '0.0.4'
+const version = '0.1.0'
 
 const expandRow = {
     onlyOneExpanding: true,
@@ -265,13 +265,13 @@ class App extends Component {
 
         this.setState({isLoading: true, SN: Chosen_SN})
         try {
-            //TODO: убрать WS
+            const sm_ids_prepared = sm_ids.replace(/\s/g, '')
             const url = 'https://kozinov.azurewebsites.net/api/statistics?social_network=' +
-                Chosen_SN + '&sm_id=' + sm_ids + '&start_date=' + from_unix + '&end_date=' + to_unix
+                Chosen_SN + '&sm_id=' + sm_ids_prepared + '&start_date=' + from_unix + '&end_date=' + to_unix
             fetch(url)
                 .then(res => res.json()
                     .then(response => {
-                        console.log(response)
+                        //todo: exeptions handling
                         let data = Object.values(response["response"]["posts"])
                         let groups = data.map(post => post.group_name)
                         groups = groups.filter(onlyUnique)
@@ -377,7 +377,7 @@ class App extends Component {
                             <Helmet>
                             </Helmet>
                         </div>
-
+                        //todo: active columns select
                     </Row>
                     <Row className='ml-4 mr-4 mb-4'>
                         <Form.Group controlId="exampleForm.ControlTextarea1">
@@ -395,22 +395,23 @@ class App extends Component {
                             {isLoading ? 'Загрузка...' : 'Загрузить данные'}
                         </Button>
                     </Row>
-                    <Row className='ml-4 mr-4 mb-4'>
-                        <DoubleScrollbar>
-                            <BootstrapTable
-                                data={data}
-                                keyField="index"
-                                expandRow={expandRow}
-                                filter={filterFactory()}
-                                pagination={paginationFactory()}
-                                striped
-                                condensed
-                                // defaultSorted={ defaultSorted }
-                                columns={columns}
-                            />
-                        </DoubleScrollbar>
-                    </Row>
+                    <DoubleScrollbar>
+                        //todo: export
+                        <BootstrapTable
+                            data={data}
+                            keyField="index"
+                            expandRow={expandRow}
+                            filter={filterFactory()}
+                            pagination={paginationFactory()}
+                            striped
+                            condensed
+                            // defaultSorted={ defaultSorted }
+                            columns={columns}
+                        />
+                    </DoubleScrollbar>
                 </Container>
+                //todo: graphs
+
             </>
         );
     }
