@@ -362,7 +362,8 @@ class App extends Component {
                     </Row>
                     <Row className='ml-4 mr-4 mb-4'>
                         <Form.Group controlId="exampleForm.ControlTextarea1">
-                            <Form.Label>Введите ссылки на сети через запятую</Form.Label>
+                            <Form.Label>Введите ID сообществ через запятую, например, doxajournal,
+                                thevyshka</Form.Label>
                             <Form.Control as="textarea" rows="3"
                                           onChange={event => this.handleInput(event.target.value)}
                             />
