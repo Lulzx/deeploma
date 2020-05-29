@@ -29,8 +29,9 @@ import filterFactory, {
     selectFilter
 } from 'react-bootstrap-table2-filter';
 import paginationFactory from 'react-bootstrap-table2-paginator';
+import DoubleScrollbar from 'react-double-scrollbar'
 
-const version = '0.0.2'
+const version = '0.0.4'
 
 const expandRow = {
     onlyOneExpanding: true,
@@ -75,11 +76,8 @@ class App extends Component {
     constructor() {
         super();
         console.log(version)
-        // eslint-disable-next-line react-hooks/rules-of-hooks
         this.handleFromChange = this.handleFromChange.bind(this);
         this.handleToChange = this.handleToChange.bind(this);
-        // this.handleSelect = this.handleSelect.bind(this);
-        // this.load_data = this.load_data.bind(this);
         this.handleInput = this.handleInput.bind(this);
     }
 
@@ -117,7 +115,7 @@ class App extends Component {
                     }
                     ,
                     {
-                        text: "Текст/n",
+                        text: "Текст",
                         dataField: "text",
                         formatter: textSnippet,
                         filter: textFilter({placeholder: 'Введите значение'})
@@ -202,6 +200,7 @@ class App extends Component {
                     {
                         text: "Текст",
                         dataField: "text",
+                        formatter: textSnippet,
                         filter: textFilter({placeholder: 'Введите значение'})
                     }
                     ,
@@ -397,17 +396,19 @@ class App extends Component {
                         </Button>
                     </Row>
                     <Row className='ml-4 mr-4 mb-4'>
-                        <BootstrapTable
-                            data={data}
-                            keyField="index"
-                            expandRow={expandRow}
-                            filter={filterFactory()}
-                            pagination={paginationFactory()}
-                            striped
-                            condensed
-                            // defaultSorted={ defaultSorted }
-                            columns={columns}
-                        />
+                        <DoubleScrollbar>
+                            <BootstrapTable
+                                data={data}
+                                keyField="index"
+                                expandRow={expandRow}
+                                filter={filterFactory()}
+                                pagination={paginationFactory()}
+                                striped
+                                condensed
+                                // defaultSorted={ defaultSorted }
+                                columns={columns}
+                            />
+                        </DoubleScrollbar>
                     </Row>
                 </Container>
             </>
