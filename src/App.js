@@ -5,6 +5,8 @@ import {
     Navbar,
     Row,
     Button,
+    Tooltip,
+    OverlayTrigger,
     Form
 } from 'react-bootstrap'
 
@@ -28,15 +30,28 @@ import filterFactory, {
 } from 'react-bootstrap-table2-filter';
 import paginationFactory from 'react-bootstrap-table2-paginator';
 
+const version = '0.0.2'
+
 const expandRow = {
     onlyOneExpanding: true,
     renderer: row => (
         <div>
             <p>Полный текст:</p>
-            <p>'${row.text}'</p>
+            <p>{row.text}</p>
         </div>
     )
 };
+
+function textSnippet(cell, row) {
+    const text = row.text
+    return (
+        <div>
+            <OverlayTrigger overlay={<Tooltip id="tooltip-disabled">Нажмите чтобы увидеть полный текст </Tooltip>}>
+                <span>{text.slice(0, 100)}</span>
+            </OverlayTrigger>
+        </div>
+    );
+}
 
 class App extends Component {
     state = {
@@ -59,6 +74,7 @@ class App extends Component {
 
     constructor() {
         super();
+        console.log(version)
         // eslint-disable-next-line react-hooks/rules-of-hooks
         this.handleFromChange = this.handleFromChange.bind(this);
         this.handleToChange = this.handleToChange.bind(this);
@@ -103,8 +119,8 @@ class App extends Component {
                     {
                         text: "Текст/n",
                         dataField: "text",
+                        formatter: textSnippet,
                         filter: textFilter({placeholder: 'Введите значение'})
-
                     }
                     ,
                     {
@@ -249,23 +265,27 @@ class App extends Component {
         }
 
         this.setState({isLoading: true, SN: Chosen_SN})
-        const url = 'https://kozinov.azurewebsites.net/api/statistics?restype=service&comp=propertiessocial_network=' +
-            Chosen_SN + '&sm_id=' + sm_ids + '&start_date=' + from_unix + '&end_date=' + to_unix
-        fetch(url)
-            .then(res => res.json()
-                .then(response => {
-                    console.log("data is loaded", response)
-                    let data = Object.values(response["response"]["posts"])
-                    console.log("data is writen to variable")
-                    let groups = data.map(post => post.group_name)
-                    console.log("groups is writen to variable")
-                    groups = groups.filter(onlyUnique)
-                    groups = groups.map((group) => {
-                        return {value: group, label: group}
-                    })
-                    this.setState({groups: groups, data: data})
-                    console.log("writing state")
-                }).then(() => this.setState({isLoading: false})))
+        try {
+            //TODO: убрать WS
+            const url = 'https://kozinov.azurewebsites.net/api/statistics?social_network=' +
+                Chosen_SN + '&sm_id=' + sm_ids + '&start_date=' + from_unix + '&end_date=' + to_unix
+            fetch(url)
+                .then(res => res.json()
+                    .then(response => {
+                        console.log(response)
+                        let data = Object.values(response["response"]["posts"])
+                        let groups = data.map(post => post.group_name)
+                        groups = groups.filter(onlyUnique)
+                        groups = groups.map((group) => {
+                            return {value: group, label: group}
+                        })
+                        console.log()
+                        this.setState({groups: groups, data: data})
+                    }).then(() => this.setState({isLoading: false})))
+        } catch (e) {
+            console.log(e)
+            this.setState({isLoading: false})
+        }
     }
 
     handleInput(sm_ids) {
