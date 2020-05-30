@@ -3,14 +3,11 @@ from datetime import datetime
 from vk_methods import load_from_vk
 from tg_methods import load_from_tg
 import pandas as pd
-from flask_cors import CORS
 import nltk
 from score import text2vec, sentiment
 import urllib.parse
 
 app = Flask(__name__)
-CORS(app)
-cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 
 @app.route('/api/statistics', methods=['GET'])

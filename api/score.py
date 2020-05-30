@@ -5,7 +5,7 @@ import tensorflow as tf
 from pymorphy2 import MorphAnalyzer
 import numpy as np
 
-# sentiment_model = tf.keras.models.load_model('/model.h5')
+sentiment_model = tf.keras.models.load_model('/model.h5')
 model_tayga_func = gensim.models.KeyedVectors.load_word2vec_format('tayga-func.bin', binary=True)
 regex = re.compile('[^а-яА-Я]')
 stopwords_ru = stopwords.words("russian")
