@@ -30,8 +30,9 @@ import filterFactory, {
 } from 'react-bootstrap-table2-filter';
 import paginationFactory from 'react-bootstrap-table2-paginator';
 import DoubleScrollbar from 'react-double-scrollbar'
+import Plot from 'react-plotly.js';
 
-const version = '0.1.1'
+const version = '0.1.2'
 
 const expandRow = {
     onlyOneExpanding: true,
@@ -42,6 +43,38 @@ const expandRow = {
         </div>
     )
 };
+
+function prepareDataForChart(data, groups, params) {
+    let posts_by_group = {}
+    groups.map(group => {
+        posts_by_group[group] = data.filter(post => {
+            return post.group_name === group
+        })
+    })
+    let metrics = []
+    for (let [group, timeArray] of Object.entries(posts_by_group)) {
+        let object = {}
+        timeArray.map(function (post) {
+            let date = post.Timestamp;
+            let localDateString = new Date(date).getFullYear() + '-' + (new Date(date).getMonth() + 1) + '-' + new Date(date).getDate();
+            if (object[localDateString]) {
+                object[localDateString].count += 1;
+                object[localDateString].views += post.views;
+            } else {
+                object[localDateString] = {views: post.views, count: 1}
+            }
+        })
+
+        let x = []
+        let y = []
+        for (let [key, value] of Object.entries(object)) {
+            x.push(new Date(key))
+            y.push(value.views / value.count)
+        }
+        metrics.push({"name": group, "x": x, "y": y, ...params})
+    }
+    return metrics
+}
 
 function textSnippet(cell, row) {
     const text = row.text
@@ -68,7 +101,8 @@ class App extends Component {
         from: undefined,
         to: undefined,
         buttonDisable: true,
-        isLoading: false
+        isLoading: false,
+        timeplot_data: []
     };
     initial_state = {...this.state};
 
@@ -264,27 +298,27 @@ class App extends Component {
         }
 
         this.setState({isLoading: true, SN: Chosen_SN})
-        try {
-            const sm_ids_prepared = sm_ids.replace(/\s/g, '')
-            const url = 'https://kozinov.azurewebsites.net/api/statistics?social_network=' +
-                Chosen_SN + '&sm_id=' + sm_ids_prepared + '&start_date=' + from_unix + '&end_date=' + to_unix
-            fetch(url)
-                .then(res => res.json()
-                    .then(response => {
-                        //todo: exeptions handling
-                        let data = Object.values(response["response"]["posts"])
-                        let groups = data.map(post => post.group_name)
-                        groups = groups.filter(onlyUnique)
-                        groups = groups.map((group) => {
-                            return {value: group, label: group}
-                        })
-                        console.log()
-                        this.setState({groups: groups, data: data})
-                    }).then(() => this.setState({isLoading: false})))
-        } catch (e) {
-            console.log(e)
-            this.setState({isLoading: false})
-        }
+        const sm_ids_prepared = sm_ids.replace(/\s/g, '')
+        const url = 'https://kozinov.azurewebsites.net/api/statistics?social_network=' +
+            Chosen_SN + '&sm_id=' + sm_ids_prepared + '&start_date=' + from_unix + '&end_date=' + to_unix
+        fetch(url)
+            .then(res => res.json()
+                .then(response => {
+                    //todo: exeptions handling
+                    let data = Object.values(response["response"]["posts"])
+                    let groups = data.map(post => post.group_name)
+                    groups = groups.filter(onlyUnique)
+                    let groups_filter = groups.map((group) => {
+                        return {value: group, label: group}
+                    })
+                    console.log()
+                    this.setState({groups: groups_filter, data: data})
+                    let lines_param = {type: 'scatter', shape: 'spline'}
+                    let graph_metrics = prepareDataForChart(data, groups)
+
+                }).then(() =>
+                    this.setState({isLoading: false}))
+            )
     }
 
     handleInput(sm_ids) {
@@ -322,7 +356,7 @@ class App extends Component {
             <>
                 <Navbar expand="lg" bg="dark" variant="dark">
                     <Navbar.Brand href="#home">
-                        APP
+                        Программа определения тональности постов в социальных сетях и сбора статистики
                     </Navbar.Brand>
                 </Navbar>
                 <Container className='mt-4 mb-4'>
@@ -412,6 +446,18 @@ class App extends Component {
                             columns={columns}
                         />
                     </DoubleScrollbar>
+                    <Plot
+                        data={this.state.timeplot_data}
+                        layout={{
+                            width: 320, height: 240, title: 'A Fancy Plot',
+                            xaxis: {
+                                title: 'Даты'
+                            },
+                            yaxsis: {
+                                tiltle: 'Средние просмотры за день'
+                            }
+                        }}
+                    />
                 </Container>
             </>
         );

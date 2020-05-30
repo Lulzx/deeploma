@@ -4,17 +4,14 @@ from vk_methods import load_from_vk
 from tg_methods import load_from_tg
 import pandas as pd
 from flask_cors import CORS
-
-# import nltk
+import nltk
+from score import text2vec, sentiment
+import urllib.parse
 
 app = Flask(__name__)
 CORS(app)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
-app.run()
-
-
-# nltk.download('stopwords')
 
 @app.route('/api/statistics', methods=['GET'])
 def statistics():
@@ -44,8 +41,28 @@ def statistics():
             except Exception as ex:
                 errors.append({'group': ex.args[0], 'error': ex.args[1]})
 
+    data['sentiment'] = data.text.apply(setnimet)
     data.reset_index(inplace=True, drop=True)
     data.reset_index(inplace=True)
+
     return jsonify({'response': {'posts': data.T.to_dict(), 'errors': errors}})
 
-# if __name__ == '__main__':
+
+@app.route('/api/textvector', methods=['GET'])
+def textvector():
+    text = request.args.get('text')
+    text = urllib.parse.unquote(text)
+    result = text2vec(text)
+    return jsonify({'response': {'vector': result}})
+
+
+@app.route('/api/sentiment', methods=['GET'])
+def sentiment():
+    text = request.args.get('text')
+    result = sentiment(text)
+    return jsonify({'response': {'tone': result}})
+
+
+if __name__ == '__main__':
+    nltk.download('stopwords')
+    app.run()
