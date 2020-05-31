@@ -29,6 +29,7 @@ import filterFactory, {
     selectFilter
 } from 'react-bootstrap-table2-filter';
 import paginationFactory from 'react-bootstrap-table2-paginator';
+import ToolkitProvider, {CSVExport} from 'react-bootstrap-table2-toolkit';
 import DoubleScrollbar from 'react-double-scrollbar'
 import Plot from 'react-plotly.js';
 
@@ -345,12 +346,10 @@ class App extends Component {
     }
 
 //todo: active columns select
-//todo: export
-//todo: graphs
     render() {
         const {from, to, today, columns, data, buttonDisable, isLoading} = this.state;
         const modifiers = {start: from, end: to};
-
+        const {ExportCSVButton} = CSVExport;
 
         return (
             <>
@@ -414,7 +413,6 @@ class App extends Component {
                             <Helmet>
                             </Helmet>
                         </div>
-
                     </Row>
                     <Row className='ml-4 mr-4 mb-4'>
                         <Form.Group controlId="exampleForm.ControlTextarea1">
@@ -433,8 +431,7 @@ class App extends Component {
                         </Button>
                     </Row>
                     <DoubleScrollbar>
-
-                        <BootstrapTable
+                        <ToolkitProvider
                             data={data}
                             keyField="index"
                             expandRow={expandRow}
@@ -442,14 +439,24 @@ class App extends Component {
                             pagination={paginationFactory()}
                             striped
                             condensed
-                            // defaultSorted={ defaultSorted }
                             columns={columns}
-                        />
+                            exportCSV>
+                            {
+                                props => (
+                                    <div>
+                                        <ExportCSVButton variant="info" {...props.csvProps}>Скачать
+                                            .csv</ExportCSVButton>
+                                        <hr/>
+                                        <BootstrapTable {...props.baseProps} />
+                                    </div>
+                                )
+                            }
+                        </ToolkitProvider>
                     </DoubleScrollbar>
                     <Plot
                         data={this.state.timeplot_data}
                         layout={{
-                            width: 320, height: 240, title: 'A Fancy Plot',
+                            width: 1000, height: 240, title: 'A Fancy Plot',
                             xaxis: {
                                 title: 'Даты'
                             },

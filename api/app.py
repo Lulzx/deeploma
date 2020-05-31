@@ -1,13 +1,28 @@
 from flask import jsonify, request, Flask
 from datetime import datetime
-from vk_methods import load_from_vk
+from vk_methods import load_from_vk, cleanText
 from tg_methods import load_from_tg
 import pandas as pd
 import nltk
-from score import text2vec, sentiment
 import urllib.parse
+import re
+import numpy as np
+import gensim
+from nltk.corpus import stopwords
+import tensorflow as tf
+from pymorphy2 import MorphAnalyzer
 
 app = Flask(__name__)
+
+regex = re.compile('[^а-яА-Я]')
+sentiment_model = tf.compat.v1.keras.experimental.load_from_saved_model('./sentiment_model')
+try:
+    stopwords_ru = stopwords.words("russian")
+except LookupError:
+    nltk.download('stopwords')
+    stopwords_ru = stopwords.words("russian")
+morph_analyzer = MorphAnalyzer()
+model_tayga_func = gensim.models.KeyedVectors.load_word2vec_format('tayga-func.bin', binary=True)
 
 
 @app.route('/api/statistics', methods=['GET'])
@@ -38,7 +53,7 @@ def statistics():
             except Exception as ex:
                 errors.append({'group': ex.args[0], 'error': ex.args[1]})
 
-    data['sentiment'] = data.text.apply(setnimet)
+    data['sentiment'] = data.text.apply(get_sentiment)
     data.reset_index(inplace=True, drop=True)
     data.reset_index(inplace=True)
 
@@ -49,6 +64,7 @@ def statistics():
 def textvector():
     text = request.args.get('text')
     text = urllib.parse.unquote(text)
+    text = cleanText(text)
     result = text2vec(text)
     return jsonify({'response': {'vector': result}})
 
@@ -56,10 +72,48 @@ def textvector():
 @app.route('/api/sentiment', methods=['GET'])
 def sentiment():
     text = request.args.get('text')
-    result = sentiment(text)
+    text = urllib.parse.unquote(text)
+    text = cleanText(text)
+    result = get_sentiment(text)
     return jsonify({'response': {'tone': result}})
 
 
+def text2vec(text):
+    stopwords_ru = stopwords.words("russian")
+    text_vector = []
+    tokens = text.split()
+    for token in tokens:
+        word = regex.sub('', token).lower()
+        if (not word) or word in stopwords_ru:
+            continue
+    for word_try in morph_analyzer.parse(word):
+        lemm = word_try.normal_form
+        POS = word_try.tag.POS
+        model_word = lemm + '_' + str(POS)
+        try:
+            text_vector.append(model_tayga_func.vocab[model_word].index)
+            break
+        except KeyError:
+            continue
+    return text_vector
+
+
+def get_sentiment(text):
+    try:
+        text_vector = text2vec(text)
+        input_ = np.array(text_vector, dtype=np.float32)
+        result = sentiment_model.predict(input_)[0][0]
+        if result >= 0.6:
+            result = 'Позитивный'
+        elif result <= 0.4:
+            result = 'Негативный'
+        else:
+            result = 'Нейтральный'
+        return result
+    except Exception as e:
+        result = str(e)
+        return result
+
+
 if __name__ == '__main__':
-    nltk.download('stopwords')
     app.run()
