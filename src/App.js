@@ -36,7 +36,7 @@ import {CSVLink} from "react-csv";
 const Plotly = window.Plotly;
 const Plot = createPlotlyComponent(Plotly);
 
-const version = '0.1.6'
+const version = '0.1.6 bug fix'
 const LOCALHOST = "http://127.0.0.1:5000"
 const WEBSERVER = "https://kozinov.azurewebsites.net"
 
@@ -337,19 +337,16 @@ class App extends Component {
                                     timeplot_data: [...prevState.timeplot_data, timeplot_data],
                                     isLoading: isLoading
                                 }))
-
-
                             }
                         }
-                    )
-                ).catch((error) => {
-                console.log("Ошибка при парсинге ответа", error)
-            })
-        }).catch((error) => {
-                console.log("Ошибка при запросе", error)
-                this.setState({isLoading: false})
-            }
-        )
+                    ).catch((error) => {
+                        console.log("Ошибка при парсинге ответа", error)
+                    })).catch((error) => {
+                    console.log("Ошибка при запросе", error)
+                    this.setState({isLoading: false})
+                }
+            )
+        })
     }
 
     handleInput(sm_ids) {
