@@ -90,5 +90,6 @@ def load_from_tg(group_id, date_from, date_to):
 
     anomalies = posts_data.views.apply(three_sigma_anomaly)
     posts_data['is_anomaly'] = anomalies
+    posts_data.sort_values(['post_date'], axis=0, ascending=True, inplace=True)
 
     return posts_data

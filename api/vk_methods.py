@@ -4,13 +4,11 @@ import time
 from datetime import datetime
 import re
 
-
-
 TOKEN_VK = '23acc95023acc95023acc9504023c092a1223ac23acc9507ef4dc240205bcafea27244d'  # vk service token
 version = 5.101
 
-def get_members(group_id):
 
+def get_members(group_id):
     try_count = 0
     while try_count < 2:
         try:
@@ -59,10 +57,8 @@ def load_from_vk(group_id, date_from, date_to):
         except:
             if res.json()['error']['error_code'] != 0:
                 raise Exception(group_id, 'channel_not_found')
-        if response['count'] == 0:  # если в выгрузке пусто, переходим к следующей группе
-            date_ok = False
-            last_try = 2
-            continue
+        if response['count'] == 0:
+            return pd.DataFrame(columns=headers)
 
         # считаем посты удовлетворяющие условию по датам
         all_posts = response['items']
@@ -99,5 +95,5 @@ def load_from_vk(group_id, date_from, date_to):
 
     anomalies = posts_data.views.apply(three_sigma_anomaly)
     posts_data['is_anomaly'] = anomalies
-    posts_data.sort_values(['post_date'], axis=0, ascending=False, inplace=True)
+    posts_data.sort_values(['post_date'], axis=0, ascending=True, inplace=True)
     return posts_data
