@@ -36,7 +36,7 @@ import {CSVLink} from "react-csv";
 const Plotly = window.Plotly;
 const Plot = createPlotlyComponent(Plotly);
 
-const version = '0.1.6 bug fix'
+const version = '0.1.7 bug fix'
 const LOCALHOST = "http://127.0.0.1:5000"
 const WEBSERVER = "https://kozinov.azurewebsites.net"
 
@@ -89,7 +89,7 @@ function prepareDataForChart(data, groups) {
 }
 
 function textSnippet(cell, row) {
-    const text = row.text
+    const text = row.text ? row.text : "В посте нет текста"
     return (
         <div>
             <OverlayTrigger overlay={<Tooltip id="tooltip-disabled">Нажмите чтобы увидеть полный текст </Tooltip>}>
@@ -309,27 +309,26 @@ class App extends Component {
         const sm_ids_prepared = sm_ids.replace(/\s/g, '')
         const sm_ids_arr = sm_ids_prepared.split(',')
         const len = sm_ids_arr.length
-        let counter = 0
         let isLoading = true
-        sm_ids_arr.map(function (sm) {
-            counter += 1;
+        for (let i = 0; i < len; i++) {
+            const sm = sm_ids_arr[i]
             const url = WEBSERVER + '/api/statistics?social_network=' +
                 Chosen_SN + '&sm_id=' + sm + '&start_date=' + from_unix + '&end_date=' + to_unix
             fetch(url)
                 .then(res => res.json()
                     .then(response => {
-                            if (response["error"] !== '')
-                                console.log('error on response', response["error"])
-                            if (response["response"]["count"] !== 0) {
-                                let data = Object.values(response["response"]["posts"])
-                                let groups = data.map(post => post.group_name)
+                        if (response["error"] !== '')
+                            console.log('error on response', response["error"])
+                        if (response["response"]["count"] !== 0) {
+                            let data = Object.values(response["response"]["posts"])
+                            let groups = data.map(post => post.group_name)
                                 groups.push(groups.filter(onlyUnique))
                                 let groups_filter = groups.map(group => {
                                     return {'value': group, 'label': group}
                                 })
                                 let timeplot_data = prepareDataForChart(data, groups)
-                                if (counter === len)
-                                    isLoading = false
+                            if (i === len - 1)
+                                isLoading = false
                                 this.setState(prevState => ({
                                     data: [...prevState.data, data],
                                     groups: [...prevState.groups, groups],
@@ -346,7 +345,7 @@ class App extends Component {
                     this.setState({isLoading: false})
                 }
             )
-        })
+        }
     }
 
     handleInput(sm_ids) {
