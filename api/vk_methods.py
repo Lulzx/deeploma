@@ -59,7 +59,6 @@ def load_from_vk(group_id, date_from, date_to):
         except:
             if res.json()['error']['error_code'] != 0:
                 raise Exception(group_id, 'channel_not_found')
-
         if response['count'] == 0:  # если в выгрузке пусто, переходим к следующей группе
             date_ok = False
             last_try = 2
@@ -100,5 +99,5 @@ def load_from_vk(group_id, date_from, date_to):
 
     anomalies = posts_data.views.apply(three_sigma_anomaly)
     posts_data['is_anomaly'] = anomalies
-
+    posts_data.sort_values(['post_date'], axis=0, ascending=False, inplace=True)
     return posts_data

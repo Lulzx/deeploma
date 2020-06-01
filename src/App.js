@@ -29,11 +29,16 @@ import filterFactory, {
     selectFilter
 } from 'react-bootstrap-table2-filter';
 import paginationFactory from 'react-bootstrap-table2-paginator';
-import ToolkitProvider, {CSVExport} from 'react-bootstrap-table2-toolkit';
 import DoubleScrollbar from 'react-double-scrollbar'
-import Plot from 'react-plotly.js';
+import createPlotlyComponent from 'react-plotly.js/factory';
+import {CSVLink} from "react-csv";
 
-const version = '0.1.2'
+const Plotly = window.Plotly;
+const Plot = createPlotlyComponent(Plotly);
+
+const version = '0.1.6'
+const LOCALHOST = "http://127.0.0.1:5000"
+const WEBSERVER = "https://kozinov.azurewebsites.net"
 
 const expandRow = {
     onlyOneExpanding: true,
@@ -45,18 +50,23 @@ const expandRow = {
     )
 };
 
-function prepareDataForChart(data, groups, params) {
+function onlyUnique(value, index, self) {
+    return self.indexOf(value) === index;
+}
+
+function prepareDataForChart(data, groups) {
     let posts_by_group = {}
     groups.map(group => {
         posts_by_group[group] = data.filter(post => {
             return post.group_name === group
         })
+        return group
     })
     let metrics = []
     for (let [group, timeArray] of Object.entries(posts_by_group)) {
         let object = {}
         timeArray.map(function (post) {
-            let date = post.Timestamp;
+            let date = post.post_date;
             let localDateString = new Date(date).getFullYear() + '-' + (new Date(date).getMonth() + 1) + '-' + new Date(date).getDate();
             if (object[localDateString]) {
                 object[localDateString].count += 1;
@@ -64,6 +74,7 @@ function prepareDataForChart(data, groups, params) {
             } else {
                 object[localDateString] = {views: post.views, count: 1}
             }
+            return post
         })
 
         let x = []
@@ -72,7 +83,7 @@ function prepareDataForChart(data, groups, params) {
             x.push(new Date(key))
             y.push(value.views / value.count)
         }
-        metrics.push({"name": group, "x": x, "y": y, ...params})
+        metrics.push({"name": group, "x": x, "y": y, "type": 'scatter', "line": {"shape": 'spline'}})
     }
     return metrics
 }
@@ -94,6 +105,7 @@ class App extends Component {
         SN: "",
         today: new Date(),
         groups: [],
+        groups_filter: [],
         data: [],
         sm_ids: [],
         columns: [{
@@ -130,7 +142,7 @@ class App extends Component {
                         text: "Группа",
                         dataField: 'group_name',
                         filter: selectFilter({
-                            options: this.state.groups,
+                            options: this.state.groups_filter,
                             placeholder: ' '
                         })
                     },
@@ -143,10 +155,7 @@ class App extends Component {
                         text: "Дата, время",
                         dataField: "post_date",
                         formatter: formatDate,
-                        filter: dateFilter({
-                            style: {width: "100%"},
-                            placeholder: 'Введите дату'
-                        })
+                        filter: dateFilter({style: {width: "100%"}, placeholder: 'Введите дату'})
                     }
                     ,
                     {
@@ -187,28 +196,25 @@ class App extends Component {
                     {
                         text: "Аномальные просмотры",
                         dataField: "is_anomaly",
-                        // filter: selectFilter({
-                        //     options: {
-                        //         0: 'Да',
-                        //         1: 'Нет'
-                        //     },
-                        //     placeholder: ' '
-                        // })
+                        filter: selectFilter({
+                            options: [{value: "Да", label: "Да"}, {value: "Нет", label: "Нет"}],
+                            placeholder: ' '
+                        }),
+                        sort: true
                     },
                     {
                         text: "Тональный характер",
                         dataField: "sentiment",
-                        // filter: selectFilter({
-                        //     options: {
-                        //         0: 'Позитивный',
-                        //         1: 'Нейтральный',
-                        //         2: 'Негативный'
-                        //     },
-                        //     placeholder: ' '
-                        // })
+                        filter: selectFilter({
+                            options: [{value: "Позитивный", label: "Позитивный"},
+                                {value: "Нейтральный", label: "Нейтральный"},
+                                {value: "Негативный", label: "Негативный"}],
+                            placeholder: ' '
+                        }),
+                        sort: true
                     }
                 ]
-                this.setState({columns: columns, buttonDisable: this.isReady(), Chosen_SN: SN})
+                this.setState({columns: columns, Chosen_SN: SN})
                 break;
             case ('tg'):
                 columns = [
@@ -256,33 +262,31 @@ class App extends Component {
                     {
                         text: "Аномальные просмотры",
                         dataField: "is_anomaly",
-                        // filter: selectFilter({
-                        //     options: {
-                        //         0: 'Да',
-                        //         1: 'Нет'
-                        //     },
-                        //     placeholder: ' '
-                        // })
+                        filter: selectFilter({
+                            options: [{value: "Да", label: "Да"}, {value: "Нет", label: "Нет"}],
+                            placeholder: ' '
+                        }),
+                        sort: true,
+                        placeholder: ' '
                     },
                     {
                         text: "Тональный характер",
                         dataField: "sentiment",
-                        // filter: selectFilter({
-                        //     options: {
-                        //         0: 'Позитивный',
-                        //         1: 'Нейтральный',
-                        //         2: 'Негативный'
-                        //     },
-                        //     placeholder: ' '
-                        // })
+                        filter: selectFilter({
+                            options: [{value: "Позитивный", label: "Позитивный"},
+                                {value: "Нейтральный", label: "Нейтральный"},
+                                {value: "Негативный", label: "Негативный"}],
+                            placeholder: ' '
+                        }),
+                        sort: true
                     }
                 ]
-                this.setState({columns: columns, buttonDisable: this.isReady(), Chosen_SN: SN})
+                this.setState({columns: columns, Chosen_SN: SN})
                 break
             default:
                 break
         }
-
+        this.setState({buttonDisable: this.isReady()})
     }
 
     isReady() {
@@ -294,32 +298,58 @@ class App extends Component {
         const from_unix = from.getTime() / 1000
         const to_unix = to.getTime() / 1000
 
-        function onlyUnique(value, index, self) {
-            return self.indexOf(value) === index;
-        }
-
-        this.setState({isLoading: true, SN: Chosen_SN})
+        this.setState({
+            isLoading: true,
+            SN: Chosen_SN,
+            data: this.initial_state.data,
+            groups: this.initial_state.groups,
+            groups_filter: this.initial_state.groups_filter,
+            timeplot_data: this.initial_state.timeplot_data
+        })
         const sm_ids_prepared = sm_ids.replace(/\s/g, '')
-        const url = 'https://kozinov.azurewebsites.net/api/statistics?social_network=' +
-            Chosen_SN + '&sm_id=' + sm_ids_prepared + '&start_date=' + from_unix + '&end_date=' + to_unix
-        fetch(url)
-            .then(res => res.json()
-                .then(response => {
-                    //todo: exeptions handling
-                    let data = Object.values(response["response"]["posts"])
-                    let groups = data.map(post => post.group_name)
-                    groups = groups.filter(onlyUnique)
-                    let groups_filter = groups.map((group) => {
-                        return {value: group, label: group}
-                    })
-                    console.log()
-                    this.setState({groups: groups_filter, data: data})
-                    let lines_param = {type: 'scatter', shape: 'spline'}
-                    let graph_metrics = prepareDataForChart(data, groups)
+        const sm_ids_arr = sm_ids_prepared.split(',')
+        const len = sm_ids_arr.length
+        let counter = 0
+        let isLoading = true
+        sm_ids_arr.map(function (sm) {
+            counter += 1;
+            const url = WEBSERVER + '/api/statistics?social_network=' +
+                Chosen_SN + '&sm_id=' + sm + '&start_date=' + from_unix + '&end_date=' + to_unix
+            fetch(url)
+                .then(res => res.json()
+                    .then(response => {
+                            if (response["error"] !== '')
+                                console.log('error on response', response["error"])
+                            if (response["response"]["count"] !== 0) {
+                                let data = Object.values(response["response"]["posts"])
+                                let groups = data.map(post => post.group_name)
+                                groups.push(groups.filter(onlyUnique))
+                                let groups_filter = groups.map(group => {
+                                    return {'value': group, 'label': group}
+                                })
+                                let timeplot_data = prepareDataForChart(data, groups)
+                                if (counter === len)
+                                    isLoading = false
+                                this.setState(prevState => ({
+                                    data: [...prevState.data, data],
+                                    groups: [...prevState.groups, groups],
+                                    groups_filter: [...prevState.groups_filter, groups_filter],
+                                    timeplot_data: [...prevState.timeplot_data, timeplot_data],
+                                    isLoading: isLoading
+                                }))
 
-                }).then(() =>
-                    this.setState({isLoading: false}))
-            )
+
+                            }
+                        }
+                    )
+                ).catch((error) => {
+                console.log("Ошибка при парсинге ответа", error)
+            })
+        }).catch((error) => {
+                console.log("Ошибка при запросе", error)
+                this.setState({isLoading: false})
+            }
+        )
     }
 
     handleInput(sm_ids) {
@@ -349,7 +379,6 @@ class App extends Component {
     render() {
         const {from, to, today, columns, data, buttonDisable, isLoading} = this.state;
         const modifiers = {start: from, end: to};
-        const {ExportCSVButton} = CSVExport;
 
         return (
             <>
@@ -361,12 +390,17 @@ class App extends Component {
                 <Container className='mt-4 mb-4'>
                     <Row className='ml-4 mr-4 mb-4'>
 
-                        <Select options={[{value: 'vk', label: 'ВКонтакте'}, {
-                            value: 'tg',
-                            label: 'Телеграм'
-                        }]}
+                        <Select options={[
+                            {
+                                value: 'vk',
+                                label: 'ВКонтакте'
+                            }, {
+                                value: 'tg',
+                                label: 'Телеграм'
+                            }]}
                                 style={{width: 150}}
-                                onChange={val => this.handleSelect(val[0].value)}
+                                onChange={val =>
+                                    this.handleSelect(val[0].value)}
                         />
                         <div className="InputFromTo ml-4">
                             <DayPickerInput
@@ -430,44 +464,48 @@ class App extends Component {
                             {isLoading ? 'Загрузка...' : 'Загрузить данные'}
                         </Button>
                     </Row>
+                    <CSVLink className='btn btn-info'
+                             data={data}
+                             separator={";"}
+                             filename={"posts.csv"}
+                    >
+                        Скачать CSV</CSVLink>
+
                     <DoubleScrollbar>
-                        <ToolkitProvider
+                        <BootstrapTable
+                            striped
+                            condensed
                             data={data}
                             keyField="index"
+                            columns={columns}
                             expandRow={expandRow}
                             filter={filterFactory()}
                             pagination={paginationFactory()}
-                            striped
-                            condensed
-                            columns={columns}
-                            exportCSV>
-                            {
-                                props => (
-                                    <div>
-                                        <ExportCSVButton variant="info" {...props.csvProps}>Скачать
-                                            .csv</ExportCSVButton>
-                                        <hr/>
-                                        <BootstrapTable {...props.baseProps} />
-                                    </div>
-                                )
-                            }
-                        </ToolkitProvider>
+                        />
                     </DoubleScrollbar>
                     <Plot
                         data={this.state.timeplot_data}
                         layout={{
-                            width: 1000, height: 240, title: 'A Fancy Plot',
+                            width: 1000,
+                            height: 600,
+                            title: 'Среднее количество просмотров постов, сделанных в указанный день',
                             xaxis: {
-                                title: 'Даты'
+                                dtick: 86400000,
+                                title: 'Даты',
+                                type: 'date',
+                                tickformat: '%d/%m'
                             },
-                            yaxsis: {
-                                tiltle: 'Средние просмотры за день'
+                            yaxis: {
+                                title: 'Средние просмотры у одного поста'
                             }
+
                         }}
+
                     />
                 </Container>
             </>
-        );
+        )
+            ;
     }
 }
 
