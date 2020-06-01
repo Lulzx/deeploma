@@ -109,7 +109,7 @@ def get_sentiment(text):
         text_vector = text2vec(text)
         input_ = np.array(text_vector, dtype=np.float32)
         result = sentiment_model.predict(input_)[0][0]
-        if result >= 0.6:
+        if result >= 0.7:
             result = 'Позитивный'
         elif result <= 0.4:
             result = 'Негативный'
