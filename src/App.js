@@ -36,7 +36,7 @@ import {CSVLink} from "react-csv";
 const Plotly = window.Plotly;
 const Plot = createPlotlyComponent(Plotly);
 
-const version = '0.1.7 bug fix'
+const version = '0.1.8'
 const LOCALHOST = "http://127.0.0.1:5000"
 const WEBSERVER = "https://kozinov.azurewebsites.net"
 
@@ -101,7 +101,7 @@ function textSnippet(cell, row) {
 
 class App extends Component {
     state = {
-        Chosen_SN: "",
+        chosen_columns: [],
         SN: "",
         today: new Date(),
         groups: [],
@@ -129,7 +129,7 @@ class App extends Component {
     }
 
     handleSelect(SN) {
-        let columns = []
+        let chosen_columns = []
 
         function formatDate(date) {
             return new Date(date).toLocaleString('ru-RU')
@@ -137,7 +137,7 @@ class App extends Component {
 
         switch (SN) {
             case ('vk'):
-                columns = [
+                chosen_columns = [
                     {
                         text: "Группа",
                         dataField: 'group_name',
@@ -214,10 +214,10 @@ class App extends Component {
                         sort: true
                     }
                 ]
-                this.setState({columns: columns, Chosen_SN: SN})
+                this.setState({chosen_columns: chosen_columns})
                 break;
             case ('tg'):
-                columns = [
+                chosen_columns = [
                     {
                         text: "Группа",
                         dataField: 'group_name',
@@ -281,7 +281,7 @@ class App extends Component {
                         sort: true
                     }
                 ]
-                this.setState({columns: columns, Chosen_SN: SN})
+                this.setState({chosen_columns: chosen_columns})
                 break
             default:
                 break
@@ -294,13 +294,13 @@ class App extends Component {
     }
 
     load_data() {
-        const {Chosen_SN, sm_ids, from, to} = this.state
+        const {chosen_columns, sm_ids, from, to} = this.state
         const from_unix = from.getTime() / 1000
         const to_unix = to.getTime() / 1000
 
         this.setState({
+            columns: chosen_columns,
             isLoading: true,
-            SN: Chosen_SN,
             data: this.initial_state.data,
             groups: this.initial_state.groups,
             groups_filter: this.initial_state.groups_filter,

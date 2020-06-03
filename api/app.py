@@ -38,15 +38,15 @@ def statistics():
             try:
                 data = data.append(load_from_vk(sm, start_date, end_date))
             except Exception as ex:
-                errors.append({'group': ex.args[0], 'error': ex.args[1]})
+                errors.append(str(ex))
 
     if social_network == 'tg':
         for sm in sm_id:
             try:
                 data = data.append(load_from_tg(sm, start_date_unix, end_date_unix))
             except Exception as ex:
-                errors.append({'group': ex.args[0], 'error': ex.args[1]})
-
+                errors.append(str(ex))
+    print(data)
     data['sentiment'] = data.text.apply(get_sentiment)
 
     data.reset_index(inplace=True, drop=True)

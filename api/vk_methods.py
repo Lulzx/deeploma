@@ -54,12 +54,11 @@ def load_from_vk(group_id, date_from, date_to):
                     })
         try:
             response = res.json()['response']
+            print("vk response:", response['items'])
         except:
-            if res.json()['error']['error_code'] != 0:
-                raise Exception(group_id, 'channel_not_found')
+            raise Exception(group_id, 'some error')
         if response['count'] == 0:
             return pd.DataFrame(columns=headers)
-
         # считаем посты удовлетворяющие условию по датам
         all_posts = response['items']
         group_name = response['groups'][0]['name']
@@ -80,7 +79,6 @@ def load_from_vk(group_id, date_from, date_to):
                     posts_in_group.extend(post_info)
             offset += len(all_posts)
         time.sleep(0.06)
-
     posts_data = pd.DataFrame(posts_in_group, columns=headers)
     mean_ = int(posts_data.groupby(posts_data['post_date'].dt.to_period('d')).mean()['views'].mean())
     std_ = int(posts_data.groupby(posts_data['post_date'].dt.to_period('d')).std()['views'].mean())
@@ -95,5 +93,4 @@ def load_from_vk(group_id, date_from, date_to):
 
     anomalies = posts_data.views.apply(three_sigma_anomaly)
     posts_data['is_anomaly'] = anomalies
-    posts_data.sort_values(['post_date'], axis=0, ascending=True, inplace=True)
     return posts_data

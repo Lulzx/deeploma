@@ -24,7 +24,6 @@ def get_reposts_tg(post_id):
         reposts = response['forwardsCount'] + response['mentionsCount']
     except:
         print(post_id, ' failed on ', res.json()['error'], 'in get_reposts_tg()')
-
     return reposts
 
 
@@ -49,12 +48,12 @@ def load_from_tg(group_id, date_from, date_to):
                     })
         try:
             response = res.json()['response']
+            print("tg response count:", response['total_count'])
         except:
             raise Exception(group_id, res.json()['error'])
 
         if response['count'] == 0:  # если в выгрузке пусто, переходим к следующей группе
-            count_ok = False
-            continue
+            return
 
         # проверяем что не вылезли за размеры выгрузки
         if offset + response['count'] != response['total_count']:
@@ -74,8 +73,7 @@ def load_from_tg(group_id, date_from, date_to):
                     (response['channel']['title'], members, post_date, post['link'], post_text, post['views'], reposts))
                 posts_in_group.extend(post_info)
             except:
-                print(post)
-
+                continue
     posts_data = pd.DataFrame(posts_in_group, columns=headers)
     mean_ = int(posts_data.groupby(posts_data['post_date'].dt.to_period('d')).mean()['views'].mean())
     std_ = int(posts_data.groupby(posts_data['post_date'].dt.to_period('d')).std()['views'].mean())
@@ -90,6 +88,5 @@ def load_from_tg(group_id, date_from, date_to):
 
     anomalies = posts_data.views.apply(three_sigma_anomaly)
     posts_data['is_anomaly'] = anomalies
-    posts_data.sort_values(['post_date'], axis=0, ascending=True, inplace=True)
 
     return posts_data
