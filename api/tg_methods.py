@@ -2,6 +2,8 @@ import requests as r
 import pandas as pd
 from datetime import datetime
 import re
+import urllib.parse
+import json
 
 TOKEN_TGSTAT = '4bb1914294369f7ba8507a33904eb3e7'  # tgstat token
 
@@ -33,6 +35,7 @@ def load_from_tg(group_id, date_from, date_to):
     offset = 0
     count_ok = True
     posts_in_group = []
+
     while (count_ok):
         res = r.get('https://api.tgstat.ru/channels/posts',
                     params={
@@ -47,13 +50,15 @@ def load_from_tg(group_id, date_from, date_to):
                         'extended': 1
                     })
         try:
-            response = res.json()['response']
+            response = json.loads(urllib.parse.unquote(res.text))
+            response = response['response']
             print("tg response count:", response['total_count'])
         except:
             raise Exception(group_id, res.json()['error'])
 
         if response['count'] == 0:  # если в выгрузке пусто, переходим к следующей группе
-            return
+            count_ok = False
+            continue
 
         # проверяем что не вылезли за размеры выгрузки
         if offset + response['count'] != response['total_count']:

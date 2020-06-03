@@ -3,6 +3,8 @@ import pandas as pd
 import time
 from datetime import datetime
 import re
+import urllib.parse
+import json
 
 TOKEN_VK = '23acc95023acc95023acc9504023c092a1223ac23acc9507ef4dc240205bcafea27244d'  # vk service token
 version = 5.101
@@ -53,12 +55,17 @@ def load_from_vk(group_id, date_from, date_to):
                         'fields': 'name'
                     })
         try:
-            response = res.json()['response']
-            print("vk response:", response['items'])
-        except:
-            raise Exception(group_id, 'some error')
-        if response['count'] == 0:
-            return pd.DataFrame(columns=headers)
+            response = json.loads(urllib.parse.unquote(res.text))
+            response = response['response']
+        except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            raise Exception(group_id, message)
+
+        if response['count'] == 0:  # если в выгрузке пусто, заканчиваем
+            date_ok = False
+            last_try = 2
+            continue
         # считаем посты удовлетворяющие условию по датам
         all_posts = response['items']
         group_name = response['groups'][0]['name']
@@ -79,6 +86,7 @@ def load_from_vk(group_id, date_from, date_to):
                     posts_in_group.extend(post_info)
             offset += len(all_posts)
         time.sleep(0.06)
+
     posts_data = pd.DataFrame(posts_in_group, columns=headers)
     mean_ = int(posts_data.groupby(posts_data['post_date'].dt.to_period('d')).mean()['views'].mean())
     std_ = int(posts_data.groupby(posts_data['post_date'].dt.to_period('d')).std()['views'].mean())

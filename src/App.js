@@ -36,7 +36,7 @@ import {CSVLink} from "react-csv";
 const Plotly = window.Plotly;
 const Plot = createPlotlyComponent(Plotly);
 
-const version = '0.1.8'
+const version = '0.2.0'
 const LOCALHOST = "http://127.0.0.1:5000"
 const WEBSERVER = "https://kozinov.azurewebsites.net"
 
@@ -214,7 +214,7 @@ class App extends Component {
                         sort: true
                     }
                 ]
-                this.setState({chosen_columns: chosen_columns})
+                this.setState({chosen_columns: chosen_columns, SN: SN})
                 break;
             case ('tg'):
                 chosen_columns = [
@@ -281,7 +281,7 @@ class App extends Component {
                         sort: true
                     }
                 ]
-                this.setState({chosen_columns: chosen_columns})
+                this.setState({chosen_columns: chosen_columns, SN: SN})
                 break
             default:
                 break
@@ -290,11 +290,11 @@ class App extends Component {
     }
 
     isReady() {
-        return !(this.state.Chosen_SN && this.state.from && this.state.to && this.state.sm_ids)
+        return !(this.state.SN && this.state.from && this.state.to && this.state.sm_ids)
     }
 
     load_data() {
-        const {chosen_columns, sm_ids, from, to} = this.state
+        const {chosen_columns, sm_ids, from, to, SN} = this.state
         const from_unix = from.getTime() / 1000
         const to_unix = to.getTime() / 1000
 
@@ -307,45 +307,37 @@ class App extends Component {
             timeplot_data: this.initial_state.timeplot_data
         })
         const sm_ids_prepared = sm_ids.replace(/\s/g, '')
-        const sm_ids_arr = sm_ids_prepared.split(',')
-        const len = sm_ids_arr.length
-        let isLoading = true
-        for (let i = 0; i < len; i++) {
-            const sm = sm_ids_arr[i]
-            const url = WEBSERVER + '/api/statistics?social_network=' +
-                Chosen_SN + '&sm_id=' + sm + '&start_date=' + from_unix + '&end_date=' + to_unix
-            fetch(url)
-                .then(res => res.json()
-                    .then(response => {
-                        if (response["error"] !== '')
-                            console.log('error on response', response["error"])
-                        if (response["response"]["count"] !== 0) {
-                            let data = Object.values(response["response"]["posts"])
-                            let groups = data.map(post => post.group_name)
-                                groups.push(groups.filter(onlyUnique))
-                                let groups_filter = groups.map(group => {
-                                    return {'value': group, 'label': group}
-                                })
-                                let timeplot_data = prepareDataForChart(data, groups)
-                            if (i === len - 1)
-                                isLoading = false
-                                this.setState(prevState => ({
-                                    data: [...prevState.data, data],
-                                    groups: [...prevState.groups, groups],
-                                    groups_filter: [...prevState.groups_filter, groups_filter],
-                                    timeplot_data: [...prevState.timeplot_data, timeplot_data],
-                                    isLoading: isLoading
-                                }))
-                            }
-                        }
-                    ).catch((error) => {
-                        console.log("Ошибка при парсинге ответа", error)
-                    })).catch((error) => {
-                    console.log("Ошибка при запросе", error)
-                    this.setState({isLoading: false})
-                }
-            )
-        }
+        const url = WEBSERVER + '/api/statistics?social_network=' +
+            SN + '&sm_id=' + sm_ids_prepared + '&start_date=' + from_unix + '&end_date=' + to_unix
+        fetch(url)
+            .then(res => res.json()
+                .then(response => {
+                    if (response["error"] !== '')
+                        console.log('error on response', response["error"])
+                    if (response["response"]["count"] !== 0) {
+                        let data = Object.values(response["response"]["posts"])
+                        let groups = data.map(post => post.group_name)
+                        groups.push(groups.filter(onlyUnique))
+                        let groups_filter = groups.map(group => {
+                            return {'value': group, 'label': group}
+                        })
+                        let timeplot_data = prepareDataForChart(data, groups)
+                        this.setState({
+                            data: data,
+                            groups: groups,
+                            groups_filter: groups_filter,
+                            timeplot_data: timeplot_data,
+                            isLoading: false
+                        })
+                    }
+                })
+                .catch((error) => {
+                    console.log("Ошибка при парсинге ответа", error)
+                })).catch((error) => {
+                console.log("Ошибка при запросе", error)
+                this.setState({isLoading: false})
+            }
+        )
     }
 
     handleInput(sm_ids) {

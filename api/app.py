@@ -8,13 +8,16 @@ import re
 import numpy as np
 import gensim
 from nltk.corpus import stopwords
-import tensorflow as tf
+# import tensorflow as tf
 from pymorphy2 import MorphAnalyzer
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 regex = re.compile('[^а-яА-Я]')
-sentiment_model = tf.compat.v1.keras.experimental.load_from_saved_model('./sentiment_model')
+# sentiment_model = tf.compat.v1.keras.experimental.load_from_saved_model('./sentiment_model')
 morph_analyzer = MorphAnalyzer()
 model_tayga_func = gensim.models.KeyedVectors.load_word2vec_format('tayga-func.bin', binary=True)
 
@@ -46,9 +49,10 @@ def statistics():
                 data = data.append(load_from_tg(sm, start_date_unix, end_date_unix))
             except Exception as ex:
                 errors.append(str(ex))
-    print(data)
-    data['sentiment'] = data.text.apply(get_sentiment)
-
+    # try:
+    #     data['sentiment'] = data.text.apply(get_sentiment)
+    # except:
+    #     errors.append("getting sentiment error")
     data.reset_index(inplace=True, drop=True)
     data.reset_index(inplace=True)
     return jsonify({'error': '', 'response': {'count': data.shape[0], 'posts': data.T.to_dict(), 'errors': errors}})
@@ -65,16 +69,6 @@ def textvector():
     return jsonify({'response': {'vector': result}})
 
 
-@app.route('/api/sentiment', methods=['GET'])
-def sentiment():
-    try:
-        data = request.get_json(force=True)
-    except:
-        return {'response': {'error': "failed to read body"}}
-
-    text = cleanText(data['text'])
-    result = get_sentiment(text)
-    return jsonify({'response': {'tone': result}})
 
 
 def text2vec(text):
@@ -101,21 +95,32 @@ def text2vec(text):
     return text_vector
 
 
-def get_sentiment(text):
-    try:
-        text_vector = text2vec(text)
-        input_ = np.array(text_vector, dtype=np.float32)
-        result = sentiment_model.predict(input_)[0][0]
-        if result >= 0.7:
-            result = 'Позитивный'
-        elif result <= 0.4:
-            result = 'Негативный'
-        else:
-            result = 'Нейтральный'
-        return result
-    except Exception as e:
-        result = str(e)
-        return result
+# @app.route('/api/sentiment', methods=['GET'])
+# def sentiment():
+#     try:
+#         data = request.get_json(force=True)
+#     except:
+#         return {'response': {'error': "failed to read body"}}
+#
+#     text = cleanText(data['text'])
+#     result = get_sentiment(text)
+#     return jsonify({'response': {'tone': result}})
+
+# def get_sentiment(text):
+#     try:
+#         text_vector = text2vec(text)
+#         input_ = np.array(text_vector, dtype=np.float32)
+#         result = sentiment_model.predict(input_)[0][0]
+#         if result >= 0.7:
+#             result = 'Позитивный'
+#         elif result <= 0.4:
+#             result = 'Негативный'
+#         else:
+#             result = 'Нейтральный'
+#         return result
+#     except Exception as e:
+#         result = str(e)
+#         return result
 
 
 if __name__ == '__main__':
