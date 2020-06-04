@@ -1,32 +1,24 @@
 import React, {Component} from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import {
-    Container,
-    Navbar,
-    Row,
-    Button,
-    Tooltip,
-    OverlayTrigger,
-    Form
+    Container, Navbar, Row, Button, Tooltip, OverlayTrigger, Form
 } from 'react-bootstrap'
-
+import {
+    Document, Packer, Paragraph, TextRun, HeadingLevel
+} from "docx";
+import {saveAs} from "file-saver"
 import MomentLocaleUtils, {formatDate, parseDate} from 'react-day-picker/moment';
 import DayPickerInput from "react-day-picker/DayPickerInput";
 import "./MyComponents/date_unput.css"
 import "react-day-picker/lib/style.css";
 import './App.css';
-
 import moment from "moment";
 import 'moment/locale/ru'
 import {Helmet} from 'react-helmet'
 import Select from "react-dropdown-select";
-
 import BootstrapTable from 'react-bootstrap-table-next';
 import filterFactory, {
-    dateFilter,
-    numberFilter,
-    textFilter,
-    selectFilter
+    dateFilter, numberFilter, textFilter, selectFilter
 } from 'react-bootstrap-table2-filter';
 import paginationFactory from 'react-bootstrap-table2-paginator';
 import DoubleScrollbar from 'react-double-scrollbar'
@@ -35,8 +27,7 @@ import {CSVLink} from "react-csv";
 
 const Plotly = window.Plotly;
 const Plot = createPlotlyComponent(Plotly);
-
-const version = '0.2.1'
+const version = '0.3.0'
 const LOCALHOST = "http://127.0.0.1:5000"
 const WEBSERVER = "https://kozinov.azurewebsites.net"
 
@@ -84,12 +75,64 @@ function prepareDataForChart(data, groups) {
     return metrics
 }
 
+function makeDocxData(data) {
+    let docx_data = {
+        most_view: {count: 0},
+        most_repost: {count: 0},
+        most_like: {count: 0},
+        most_comment: {count: 0},
+        positives: 0,
+        negatives: 0,
+        neutrals: 0
+    }
+    data.map(post => {
+        if (docx_data.most_view.count < post.views) {
+            docx_data.most_view.count = post.views
+            docx_data.most_view['text'] = post.text.slice(0, 20) + "..."
+            docx_data.most_view['link'] = post.post_link
+            docx_data.most_view['group'] = post.group_name
+        }
+        if (docx_data.most_comment.count < post.comments) {
+            docx_data.most_comment.count = post.comments
+            docx_data.most_comment['text'] = post.text.slice(0, 20) + "..."
+            docx_data.most_comment['link'] = post.post_link
+            docx_data.most_comment['group'] = post.group_name
+        }
+        if (docx_data.most_like.count < post.likes) {
+            docx_data.most_like.count = post.likes
+            docx_data.most_like['text'] = post.text.slice(0, 20) + "..."
+            docx_data.most_like['link'] = post.post_link
+            docx_data.most_like['group'] = post.group_name
+        }
+        if (docx_data.most_repost.count < post.reposts) {
+            docx_data.most_repost.count = post.reposts
+            docx_data.most_repost['text'] = post.text.slice(0, 20) + "..."
+            docx_data.most_repost['link'] = post.post_link
+            docx_data.most_repost['group'] = post.group_name
+        }
+        switch (post.sentiment) {
+            case("Позитивный"):
+                docx_data.positives += 1
+                break
+            case("Нейтральный"):
+                docx_data.neutrals += 1
+                break
+            case("Негативный"):
+                docx_data.negatives += 1
+                break
+            default:
+                break
+        }
+    })
+    return docx_data
+}
+
 function textSnippet(cell, row) {
     const text = row.text ? row.text : "В посте нет текста"
     return (
         <div>
             <OverlayTrigger overlay={<Tooltip id="tooltip-disabled">Нажмите чтобы увидеть полный текст </Tooltip>}>
-                <span>{text.slice(0, 100)}</span>
+                <span>{text.slice(0, 100)}...</span>
             </OverlayTrigger>
         </div>
     );
@@ -111,7 +154,8 @@ class App extends Component {
         to: undefined,
         buttonDisable: true,
         isLoading: false,
-        timeplot_data: []
+        timeplot_data: [],
+        docx_data: undefined
     };
     initial_state = {...this.state};
 
@@ -318,12 +362,24 @@ class App extends Component {
                             return {value: group, label: group}
                         })
                         let timeplot_data = prepareDataForChart(data, groups)
+                        let docx_data = makeDocxData(data)
+                        switch (SN) {
+                            case('tg'):
+                                docx_data["SN"] = "Телеграм"
+                                break
+                            case('vk'):
+                                docx_data["SN"] = "ВКонтакте"
+                                break
+                            default:
+                                break
+                        }
                         this.setState({
                             data: data,
                             groups: groups,
                             groups_filter: groups_filter,
                             timeplot_data: timeplot_data,
-                            isLoading: false
+                            isLoading: false,
+                            docx_data: docx_data
                         })
                     }
                 })
@@ -359,6 +415,108 @@ class App extends Component {
         this.setState({to: to, buttonDisable: this.isReady()}, this.showFromMonth);
     }
 
+    createDocx() {
+        const {docx_data} = this.state
+        const doc = new Document({
+            styles: {
+                paragraphStyles: [
+                    {
+                        id: "biggerNormal",
+                        name: "BiggerNormal",
+                        basedOn: "Normal",
+                        next: "Normal",
+                        run: {
+                            size: 28,
+                        },
+                    }
+                ]
+            }
+        });
+        let vk_only_metrics = []
+        // if (docx_data.SN === "ВКонтакте") vk_only_metrics = [
+        //     new TextRun("\t - по комментариям – " +
+        //         +docx_data.most_comment.text + " (" + docx_data.most_comment.group + ")," +
+        //         +" с количеством комментариев " + docx_data.most_comment.count + ".\n\t Ссылка:"
+        //         + docx_data.most_comment.link + "\n"),
+        //     new TextRun("\t - лайкам – " +
+        //         +docx_data.most_like.text + " (" + docx_data.most_like.group + ")," +
+        //         +" с количеством лейков " + docx_data.most_like.count + ".\n\t Ссылка:"
+        //         + docx_data.most_like.link + "\n")]
+        doc.addSection({
+            children: [
+                new Paragraph({
+                    text: docx_data.SN,
+                    heading: HeadingLevel.HEADING_1,
+
+                }),
+                new Paragraph({
+                    style: "biggerNormal",
+                    children: [
+                        new TextRun("Наиболее популярными постами в "),
+                        new TextRun({
+                            text: docx_data.SN, bold: true, size: 28
+                        }),
+                        new TextRun(" за выбранный период, стали:"),
+                    ]
+                }),
+                new Paragraph({
+                    bullet: {level: 0},
+                    style: "biggerNormal",
+                    children: [
+                        new TextRun({size: 28, text: "По просмотрам – "}),
+                        new TextRun({text: docx_data.most_view.text, size: 28}),
+                        new TextRun({size: 28, text: " ("}),
+                        new TextRun({text: docx_data.most_view.group, size: 28}),
+                        new TextRun({size: 28, text: "), с количеством просмотров "}),
+                        new TextRun({text: docx_data.most_view.count, size: 28}),
+                        new TextRun({size: 28, text: "Ссылка: "}).break(),
+                        new TextRun({text: docx_data.most_view.link, size: 28})]
+                }),
+                new Paragraph({
+                    bullet: {level: 0},
+                    style: "biggerNormal",
+                    children: [new TextRun({size: 28, text: "По репостам – "}),
+                        new TextRun({text: docx_data.most_repost.text, size: 28}),
+                        new TextRun({size: 28, text: "("}),
+                        new TextRun({text: docx_data.most_repost.group, size: 28}),
+                        new TextRun({size: 28, text: "), с количеством репостов "}),
+                        new TextRun({text: docx_data.most_repost.count, size: 28}),
+                        new TextRun({size: 28, text: "Ссылка: "}).break(),
+                        new TextRun({text: docx_data.most_repost.link, size: 28})]
+                }),
+                new Paragraph({
+                    style: "biggerNormal",
+                    text: "Количество постов по характеру:"
+                }),
+                new Paragraph({
+                    bullet: {level: 0},
+                    style: "biggerNormal",
+                    children: [
+                        new TextRun({text: docx_data.negatives, size: 28}),
+                        new TextRun({size: 28, text: " постов - негативные;\n"})]
+                }),
+                new Paragraph({
+                    bullet: {level: 0},
+                    style: "biggerNormal",
+                    children: [
+                        new TextRun({text: docx_data.neutrals, size: 28}),
+                        new TextRun({size: 28, text: " постов - нейтральные;\n"})]
+                }),
+                new Paragraph({
+                    bullet: {level: 0},
+                    style: "biggerNormal",
+                    children: [
+                        new TextRun({text: docx_data.positives, size: 28}),
+                        new TextRun({size: 28, text: " постов - позитивные;\n"})]
+                })
+            ]
+        })
+        Packer.toBlob(doc).then((blob) => {// saveAs from FileSaver will download the file
+            saveAs(blob, "Отчёт.docx");
+        });
+
+    }
+
 //todo: active columns select
     render() {
         const {from, to, today, columns, data, buttonDisable, isLoading} = this.state;
@@ -373,18 +531,10 @@ class App extends Component {
                 </Navbar>
                 <Container className='mt-4 mb-4'>
                     <Row className='ml-4 mr-4 mb-4'>
-
-                        <Select options={[
-                            {
-                                value: 'vk',
-                                label: 'ВКонтакте'
-                            }, {
-                                value: 'tg',
-                                label: 'Телеграм'
-                            }]}
-                                style={{width: 150}}
-                                onChange={val =>
-                                    this.handleSelect(val[0].value)}
+                        <Select
+                            options={[{value: 'vk', label: 'ВКонтакте'}, {value: 'tg', label: 'Телеграм'}]}
+                            style={{width: 150}}
+                            onChange={val => this.handleSelect(val[0].value)}
                         />
                         <div className="InputFromTo ml-4">
                             <DayPickerInput
@@ -448,12 +598,18 @@ class App extends Component {
                             {isLoading ? 'Загрузка...' : 'Загрузить данные'}
                         </Button>
                     </Row>
-                    <CSVLink className='btn btn-info'
+                    <CSVLink className='btn btn-info ml-4 mr-4'
                              data={data}
                              separator={";"}
                              filename={"posts.csv"}
+                             disabled={buttonDisable || isLoading}
                     >
                         Скачать CSV</CSVLink>
+                    <Button
+                        disabled={buttonDisable || isLoading}
+                        className='btn btn-info ml-4 mr-4'
+                        onClick={!isLoading && !buttonDisable ? this.createDocx.bind(this) : undefined}
+                    >Скачать отчёт</Button>
 
                     <DoubleScrollbar>
                         <BootstrapTable
@@ -482,9 +638,7 @@ class App extends Component {
                             yaxis: {
                                 title: 'Средние просмотры у одного поста'
                             }
-
                         }}
-
                     />
                 </Container>
             </>

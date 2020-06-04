@@ -77,7 +77,7 @@ def load_from_vk(group_id, date_from, date_to):
             for post in all_posts:
                 post_info = []
                 post_date = datetime.fromtimestamp(post['date'])
-                if date_from < post_date.date() < date_to:
+                if date_from <= post_date.date() <= date_to:
                     post_link = 'https://vk.com/wall' + str(post['owner_id']) + '_' + str(post['id'])
                     post_text = cleanText(post['text'])
                     post_info.append((group_name, members, post_date, post_link, post_text,
