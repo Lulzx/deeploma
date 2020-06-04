@@ -36,7 +36,7 @@ import {CSVLink} from "react-csv";
 const Plotly = window.Plotly;
 const Plot = createPlotlyComponent(Plotly);
 
-const version = '0.2.0'
+const version = '0.2.1'
 const LOCALHOST = "http://127.0.0.1:5000"
 const WEBSERVER = "https://kozinov.azurewebsites.net"
 
@@ -49,10 +49,6 @@ const expandRow = {
         </div>
     )
 };
-
-function onlyUnique(value, index, self) {
-    return self.indexOf(value) === index;
-}
 
 function prepareDataForChart(data, groups) {
     let posts_by_group = {}
@@ -317,9 +313,9 @@ class App extends Component {
                     if (response["response"]["count"] !== 0) {
                         let data = Object.values(response["response"]["posts"])
                         let groups = data.map(post => post.group_name)
-                        groups.push(groups.filter(onlyUnique))
+                        groups = [...new Set(groups)]
                         let groups_filter = groups.map(group => {
-                            return {'value': group, 'label': group}
+                            return {value: group, label: group}
                         })
                         let timeplot_data = prepareDataForChart(data, groups)
                         this.setState({
