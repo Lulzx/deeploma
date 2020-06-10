@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import {
-    Container, Navbar, Row, Button, Tooltip, OverlayTrigger, Form
+    Container, Navbar, Row, Col, Button, Tooltip, OverlayTrigger, Form
 } from 'react-bootstrap'
 import {
     Document, Packer, Paragraph, TextRun, HeadingLevel
@@ -27,9 +27,33 @@ import {CSVLink} from "react-csv";
 
 const Plotly = window.Plotly;
 const Plot = createPlotlyComponent(Plotly);
-const version = '0.3.0'
+const version = '0.3.3'
 const LOCALHOST = "http://127.0.0.1:5000"
 const WEBSERVER = "https://kozinov.azurewebsites.net"
+
+const sizePerPageRenderer = ({
+                                 options,
+                                 currSizePerPage,
+                                 onSizePerPageChange
+                             }) => (
+    <div className="btn-group" role="group">
+        {
+            options.map((option) => {
+                const isSelect = currSizePerPage === `${option.page}`;
+                return (
+                    <button
+                        key={option.text}
+                        type="button"
+                        onClick={() => onSizePerPageChange(option.page)}
+                        className={`btn ${isSelect ? 'btn-secondary' : 'btn-warning'}`}
+                    >
+                        {option.text}
+                    </button>
+                );
+            })}
+    </div>
+);
+
 
 const expandRow = {
     onlyOneExpanding: true,
@@ -68,7 +92,7 @@ function prepareDataForChart(data, groups) {
         let y = []
         for (let [key, value] of Object.entries(object)) {
             x.push(new Date(key))
-            y.push(value.views / value.count)
+            y.push(parseInt(value.views / value.count))
         }
         metrics.push({"name": group, "x": x, "y": y, "type": 'scatter', "line": {"shape": 'spline'}})
     }
@@ -148,14 +172,15 @@ class App extends Component {
         data: [],
         sm_ids: [],
         columns: [{
-            text: "Тут будут посты"
+            text: "Отображаемые поля не выбранны"
         }],
         from: undefined,
         to: undefined,
         buttonDisable: true,
         isLoading: false,
         timeplot_data: [],
-        docx_data: undefined
+        docx_data: undefined,
+        dataLoaded: false
     };
     initial_state = {...this.state};
 
@@ -168,165 +193,8 @@ class App extends Component {
         this.handleInput = this.handleInput.bind(this);
     }
 
-    handleSelect(SN) {
-        let chosen_columns = []
-
-        function formatDate(date) {
-            return new Date(date).toLocaleString('ru-RU')
-        }
-
-        switch (SN) {
-            case ('vk'):
-                chosen_columns = [
-                    {
-                        text: "Группа",
-                        dataField: 'group_name',
-                        filter: selectFilter({
-                            options: this.state.groups_filter,
-                            placeholder: ' '
-                        })
-                    },
-                    {
-                        text: "Подписчики",
-                        dataField: "members",
-                        filter: numberFilter({placeholder: 'Введите значение'})
-                    },
-                    {
-                        text: "Дата, время",
-                        dataField: "post_date",
-                        formatter: formatDate,
-                        filter: dateFilter({style: {width: "100%"}, placeholder: 'Введите дату'})
-                    }
-                    ,
-                    {
-                        text: "Текст",
-                        dataField: "text",
-                        formatter: textSnippet,
-                        filter: textFilter({placeholder: 'Введите значение'})
-                    }
-                    ,
-                    {
-                        text: "Просмотры",
-                        dataField: "views",
-                        filter: numberFilter({placeholder: 'Введите значение'}),
-                        sort: true
-                    }
-                    ,
-                    {
-                        text: "Лайки",
-                        dataField: "likes",
-                        filter: numberFilter({placeholder: 'Введите значение'}),
-                        sort: true
-                    }
-                    ,
-                    {
-                        text: "Репосты",
-                        dataField: "reposts",
-                        filter: numberFilter({placeholder: 'Введите значение'}),
-                        sort: true
-                    }
-                    ,
-                    {
-                        text: "Комментарии",
-                        dataField: "comments",
-                        filter: numberFilter({placeholder: 'Введите значение'}),
-                        sort: true
-                    }
-                    ,
-                    {
-                        text: "Аномальные просмотры",
-                        dataField: "is_anomaly",
-                        filter: selectFilter({
-                            options: [{value: "Да", label: "Да"}, {value: "Нет", label: "Нет"}],
-                            placeholder: ' '
-                        }),
-                        sort: true
-                    },
-                    {
-                        text: "Тональный характер",
-                        dataField: "sentiment",
-                        filter: selectFilter({
-                            options: [{value: "Позитивный", label: "Позитивный"},
-                                {value: "Нейтральный", label: "Нейтральный"},
-                                {value: "Негативный", label: "Негативный"}],
-                            placeholder: ' '
-                        }),
-                        sort: true
-                    }
-                ]
-                this.setState({chosen_columns: chosen_columns, SN: SN})
-                break;
-            case ('tg'):
-                chosen_columns = [
-                    {
-                        text: "Группа",
-                        dataField: 'group_name',
-                        filter: selectFilter({
-                            options: this.state.groups,
-                            placeholder: ' '
-                        })
-                    },
-                    {
-                        text: "Подписчики",
-                        dataField: "members",
-                        filter: numberFilter({placeholder: 'Введите значение'})
-                    },
-                    {
-                        text: "Дата, время",
-                        dataField: "post_date",
-                        formatter: formatDate,
-                        filter: dateFilter({style: {width: "100%"}, placeholder: 'Введите дату'})
-                    }
-                    ,
-                    {
-                        text: "Текст",
-                        dataField: "text",
-                        formatter: textSnippet,
-                        filter: textFilter({placeholder: 'Введите значение'})
-                    }
-                    ,
-                    {
-                        text: "Просмотры",
-                        dataField: "views",
-                        filter: numberFilter({placeholder: 'Введите значение'}),
-                        sort: true
-                    }
-                    ,
-                    {
-                        text: "Репосты",
-                        dataField: "reposts",
-                        filter: numberFilter({placeholder: 'Введите значение'}),
-                        sort: true
-                    }
-                    ,
-                    {
-                        text: "Аномальные просмотры",
-                        dataField: "is_anomaly",
-                        filter: selectFilter({
-                            options: [{value: "Да", label: "Да"}, {value: "Нет", label: "Нет"}],
-                            placeholder: ' '
-                        }),
-                        sort: true,
-                        placeholder: ' '
-                    },
-                    {
-                        text: "Тональный характер",
-                        dataField: "sentiment",
-                        filter: selectFilter({
-                            options: [{value: "Позитивный", label: "Позитивный"},
-                                {value: "Нейтральный", label: "Нейтральный"},
-                                {value: "Негативный", label: "Негативный"}],
-                            placeholder: ' '
-                        }),
-                        sort: true
-                    }
-                ]
-                this.setState({chosen_columns: chosen_columns, SN: SN})
-                break
-            default:
-                break
-        }
-        this.setState({buttonDisable: this.isReady()})
+    handleSelectSN(SN) {
+        this.setState({SN: SN, buttonDisable: this.isReady()})
     }
 
     isReady() {
@@ -334,17 +202,17 @@ class App extends Component {
     }
 
     load_data() {
-        const {chosen_columns, sm_ids, from, to, SN} = this.state
+        const {sm_ids, from, to, SN} = this.state
         const from_unix = from.getTime() / 1000
         const to_unix = to.getTime() / 1000
 
         this.setState({
-            columns: chosen_columns,
             isLoading: true,
             data: this.initial_state.data,
             groups: this.initial_state.groups,
             groups_filter: this.initial_state.groups_filter,
-            timeplot_data: this.initial_state.timeplot_data
+            timeplot_data: this.initial_state.timeplot_data,
+            dataLoaded: false,
         })
         const sm_ids_prepared = sm_ids.replace(/\s/g, '')
         const url = WEBSERVER + '/api/statistics?social_network=' +
@@ -356,6 +224,11 @@ class App extends Component {
                         console.log('error on response', response["error"])
                     if (response["response"]["count"] !== 0) {
                         let data = Object.values(response["response"]["posts"])
+                            .sort(function (a, b) {
+                                a = new Date(a.dateModified);
+                                b = new Date(b.dateModified);
+                                return a > b ? -1 : a < b ? 1 : 0;
+                            });
                         let groups = data.map(post => post.group_name)
                         groups = [...new Set(groups)]
                         let groups_filter = groups.map(group => {
@@ -379,7 +252,8 @@ class App extends Component {
                             groups_filter: groups_filter,
                             timeplot_data: timeplot_data,
                             isLoading: false,
-                            docx_data: docx_data
+                            docx_data: docx_data,
+                            dataLoaded: true
                         })
                     }
                 })
@@ -413,6 +287,22 @@ class App extends Component {
 
     handleToChange(to) {
         this.setState({to: to, buttonDisable: this.isReady()}, this.showFromMonth);
+    }
+
+    handleSelectCol(array) {
+
+        let unsorted_arr = []
+        const map = new Map()
+        for (const item of array) {
+            if (!map.has(item.serial)) {
+                map.set(item.serial, true);    // set any value to Map
+                unsorted_arr.push(item);
+            }
+        }
+        let columns = unsorted_arr.sort((a, b) => a.serial - b.serial)
+        let result = columns.length > 0 ? columns : this.initial_state.columns
+        if (columns)
+            this.setState({columns: result})
     }
 
     createDocx() {
@@ -517,11 +407,91 @@ class App extends Component {
 
     }
 
-//todo: active columns select
     render() {
-        const {from, to, today, columns, data, buttonDisable, isLoading} = this.state;
+        const {from, to, today, columns, data, buttonDisable, timeplot_data, isLoading, dataLoaded} = this.state;
         const modifiers = {start: from, end: to};
+        let tonePie = {}
+        data.map(post => {
+            if (tonePie[post.sentiment])
+                tonePie[post.sentiment] += 1
+            else
+                tonePie[post.sentiment] = 1
+        })
 
+        function tableFormatDate(date) {
+            return new Date(date).toLocaleString('ru-RU')
+        }
+
+        const columns_select = [
+            {
+                serial: 0,
+                text: "Группа",
+                dataField: 'group_name',
+                filter: selectFilter({
+                    options: this.state.groups,
+                    placeholder: ' '
+                })
+            },
+            {
+                serial: 1,
+                text: "Подписчики",
+                dataField: "members",
+                filter: numberFilter({placeholder: 'Введите значение'})
+            },
+            {
+
+                serial: 2,
+                text: "Дата, время",
+                dataField: "post_date",
+                formatter: tableFormatDate,
+                filter: dateFilter({style: {width: "100%"}, placeholder: 'Введите дату'})
+            },
+            {
+                serial: 3,
+                text: "Текст",
+                dataField: "text",
+                formatter: textSnippet,
+                filter: textFilter({placeholder: 'Введите значение'})
+            },
+            {
+                serial: 4,
+                text: "Просмотры",
+                dataField: "views",
+                filter: numberFilter({placeholder: 'Введите значение'}),
+                sort: true
+            },
+            {
+                serial: 5,
+                text: "Репосты",
+                dataField: "reposts",
+                filter: numberFilter({placeholder: 'Введите значение'}),
+                sort: true
+            },
+            {
+                serial: 6,
+                text: "Аномальные просмотры",
+                dataField: "is_anomaly",
+                filter: selectFilter({
+                    options: [{value: "Да", label: "Да"}, {value: "Нет", label: "Нет"}],
+                    placeholder: ' '
+                }),
+                sort: true,
+                placeholder: ' '
+            },
+            {
+                serial: 7,
+                text: "Тональный характер",
+                dataField: "sentiment",
+                filter: selectFilter({
+                    options: [{value: "Позитивный", label: "Позитивный"},
+                        {value: "Нейтральный", label: "Нейтральный"},
+                        {value: "Негативный", label: "Негативный"}],
+                    placeholder: ' '
+                }),
+                sort: true
+            }
+        ]
+        const pagination_options = {sizePerPageRenderer}
         return (
             <>
                 <Navbar expand="lg" bg="dark" variant="dark">
@@ -532,9 +502,11 @@ class App extends Component {
                 <Container className='mt-4 mb-4'>
                     <Row className='ml-4 mr-4 mb-4'>
                         <Select
+                            key="sm_select"
+                            placeholder={"Соц. сеть"}
                             options={[{value: 'vk', label: 'ВКонтакте'}, {value: 'tg', label: 'Телеграм'}]}
                             style={{width: 150}}
-                            onChange={val => this.handleSelect(val[0].value)}
+                            onChange={val => this.handleSelectSN(val[0].value)}
                         />
                         <div className="InputFromTo ml-4">
                             <DayPickerInput
@@ -583,13 +555,30 @@ class App extends Component {
                         </div>
                     </Row>
                     <Row className='ml-4 mr-4 mb-4'>
-                        <Form.Group controlId="exampleForm.ControlTextarea1">
-                            <Form.Label>Введите ID сообществ через запятую, например, doxajournal,
-                                thevyshka</Form.Label>
-                            <Form.Control as="textarea" rows="3"
-                                          onChange={event => this.handleInput(event.target.value)}
+                        <Col>
+                            <Form.Group controlId="exampleForm.ControlTextarea1">
+                                <Form.Label>Введите ID сообществ через запятую, например, doxajournal,
+                                    thevyshka</Form.Label>
+                                <Form.Control as="textarea" rows="3"
+                                              onChange={event => this.handleInput(event.target.value)}
+                                />
+                            </Form.Group>
+                        </Col>
+                        <Col>
+                            <Form.Label>Выберите поля для отображения</Form.Label>
+                            <Select
+                                placeholder={"Отображаемые поля"}
+                                multi
+                                values={[]}
+                                key="table_fields"
+                                valueField={"serial"}
+                                labelField={"text"}
+                                options={columns_select}
+                                onChange={selected => {
+                                    this.handleSelectCol(selected)
+                                }}
                             />
-                        </Form.Group>
+                        </Col>
                     </Row>
                     <Row className='ml-4 mr-4 mb-4'>
                         <Button variant="primary" size="lg" block
@@ -602,15 +591,14 @@ class App extends Component {
                              data={data}
                              separator={";"}
                              filename={"posts.csv"}
-                             disabled={buttonDisable || isLoading}
+                             disabled={!dataLoaded}
                     >
                         Скачать CSV</CSVLink>
                     <Button
-                        disabled={buttonDisable || isLoading}
+                        disabled={!dataLoaded}
                         className='btn btn-info ml-4 mr-4'
                         onClick={!isLoading && !buttonDisable ? this.createDocx.bind(this) : undefined}
                     >Скачать отчёт</Button>
-
                     <DoubleScrollbar>
                         <BootstrapTable
                             striped
@@ -620,14 +608,14 @@ class App extends Component {
                             columns={columns}
                             expandRow={expandRow}
                             filter={filterFactory()}
-                            pagination={paginationFactory()}
+                            pagination={paginationFactory(pagination_options)}
                         />
                     </DoubleScrollbar>
                     <Plot
-                        data={this.state.timeplot_data}
+                        data={timeplot_data}
+                        className="w-100"
+                        style={{visibility: dataLoaded ? "visible" : "hidden"}}
                         layout={{
-                            width: 1000,
-                            height: 600,
                             title: 'Среднее количество просмотров постов, сделанных в указанный день',
                             xaxis: {
                                 dtick: 86400000,
@@ -640,6 +628,21 @@ class App extends Component {
                             }
                         }}
                     />
+                    <Plot
+                        className="w-100"
+                        data={[{
+                            type: "pie",
+                            values: Object.values(tonePie),
+                            labels: Object.keys(tonePie),
+                            textinfo: "label+percent",
+                            insidetextorientation: "radial"
+                        }]}
+                        layout={{
+                            title: 'Распределение тональности'
+                        }}
+                        style={{visibility: dataLoaded ? "visible" : "hidden"}}
+                    />
+
                 </Container>
             </>
         )
