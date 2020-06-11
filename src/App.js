@@ -27,7 +27,7 @@ import {CSVLink} from "react-csv";
 
 const Plotly = window.Plotly;
 const Plot = createPlotlyComponent(Plotly);
-const version = '0.3.3'
+const version = '1.0.0'
 const LOCALHOST = "http://127.0.0.1:5000"
 const WEBSERVER = "https://kozinov.azurewebsites.net"
 
@@ -164,13 +164,12 @@ function textSnippet(cell, row) {
 
 class App extends Component {
     state = {
-        chosen_columns: [],
-        SN: "",
+        SN: undefined,
         today: new Date(),
         groups: [],
         groups_filter: [],
         data: [],
-        sm_ids: [],
+        sm_ids: undefined,
         columns: [{
             text: "Отображаемые поля не выбранны"
         }],
@@ -194,11 +193,12 @@ class App extends Component {
     }
 
     handleSelectSN(SN) {
-        this.setState({SN: SN, buttonDisable: this.isReady()})
+        let ready = this.isReady(SN, this.state.from, this.state.to, this.state.sm_ids)
+        this.setState({SN: SN, buttonDisable: ready})
     }
 
-    isReady() {
-        return !(this.state.SN && this.state.from && this.state.to && this.state.sm_ids)
+    isReady(SN, from, to, sm_ids) {
+        return !(SN && from && to && sm_ids)
     }
 
     load_data() {
@@ -225,8 +225,8 @@ class App extends Component {
                     if (response["response"]["count"] !== 0) {
                         let data = Object.values(response["response"]["posts"])
                             .sort(function (a, b) {
-                                a = new Date(a.dateModified);
-                                b = new Date(b.dateModified);
+                                a = new Date(a.post_date);
+                                b = new Date(b.post_date);
                                 return a > b ? -1 : a < b ? 1 : 0;
                             });
                         let groups = data.map(post => post.group_name)
@@ -251,23 +251,29 @@ class App extends Component {
                             groups: groups,
                             groups_filter: groups_filter,
                             timeplot_data: timeplot_data,
-                            isLoading: false,
                             docx_data: docx_data,
                             dataLoaded: true
                         })
+                    } else {
+                        console.log("Ни одно из сообществ не найдено, проверьте правильность написания")
                     }
+                    this.setState({
+                        isLoading: false,
+                    })
                 })
                 .catch((error) => {
-                    console.log("Ошибка при парсинге ответа", error)
+                    console.log("Ошибка при парсинге ответа, обратитесь к разработчику", error)
+                    this.setState({isLoading: false})
                 })).catch((error) => {
-                console.log("Ошибка при запросе", error)
-                this.setState({isLoading: false})
+            console.log("Ошибка при запросе, обратитесь к разработчику", error)
+            this.setState({isLoading: false})
             }
         )
     }
 
     handleInput(sm_ids) {
-        this.setState({sm_ids: sm_ids, buttonDisable: this.isReady()})
+        let ready = this.isReady(this.state.SN, this.state.from, this.state.to, sm_ids)
+        this.setState({sm_ids: sm_ids, buttonDisable: ready})
     }
 
     showFromMonth() {
@@ -281,12 +287,13 @@ class App extends Component {
     }
 
     handleFromChange(from) {
-        // Change the from date and focus the "to" input field
-        this.setState({from: from, buttonDisable: this.isReady()});
+        let ready = this.isReady(this.state.SN, from, this.state.to, this.state.sm_ids)
+        this.setState({from: from, buttonDisable: ready});
     }
 
     handleToChange(to) {
-        this.setState({to: to, buttonDisable: this.isReady()}, this.showFromMonth);
+        let ready = this.isReady(this.state.SN, this.state.from, to, this.state.sm_ids)
+        this.setState({to: to, buttonDisable: ready}, this.showFromMonth);
     }
 
     handleSelectCol(array) {
@@ -322,16 +329,6 @@ class App extends Component {
                 ]
             }
         });
-        let vk_only_metrics = []
-        // if (docx_data.SN === "ВКонтакте") vk_only_metrics = [
-        //     new TextRun("\t - по комментариям – " +
-        //         +docx_data.most_comment.text + " (" + docx_data.most_comment.group + ")," +
-        //         +" с количеством комментариев " + docx_data.most_comment.count + ".\n\t Ссылка:"
-        //         + docx_data.most_comment.link + "\n"),
-        //     new TextRun("\t - лайкам – " +
-        //         +docx_data.most_like.text + " (" + docx_data.most_like.group + ")," +
-        //         +" с количеством лейков " + docx_data.most_like.count + ".\n\t Ссылка:"
-        //         + docx_data.most_like.link + "\n")]
         doc.addSection({
             children: [
                 new Paragraph({
@@ -410,11 +407,8 @@ class App extends Component {
     render() {
         const {from, to, today, columns, data, buttonDisable, timeplot_data, isLoading, dataLoaded} = this.state;
         const modifiers = {start: from, end: to};
-        let tonePie = {}
+        let tonePie = {"Нейтральный": 0, "Негативный": 0, "Позитивный": 0}
         data.map(post => {
-            if (tonePie[post.sentiment])
-                tonePie[post.sentiment] += 1
-            else
                 tonePie[post.sentiment] = 1
         })
 
@@ -428,7 +422,7 @@ class App extends Component {
                 text: "Группа",
                 dataField: 'group_name',
                 filter: selectFilter({
-                    options: this.state.groups,
+                    options: this.state.groups_filter,
                     placeholder: ' '
                 })
             },
@@ -436,7 +430,7 @@ class App extends Component {
                 serial: 1,
                 text: "Подписчики",
                 dataField: "members",
-                filter: numberFilter({placeholder: 'Введите значение'})
+                filter: numberFilter({placeholder: ' '})
             },
             {
 
@@ -444,20 +438,20 @@ class App extends Component {
                 text: "Дата, время",
                 dataField: "post_date",
                 formatter: tableFormatDate,
-                filter: dateFilter({style: {width: "100%"}, placeholder: 'Введите дату'})
+                filter: dateFilter({style: {width: "100%"}, placeholder: ' '})
             },
             {
                 serial: 3,
-                text: "Текст",
+                text: 'Текст \n',
                 dataField: "text",
                 formatter: textSnippet,
-                filter: textFilter({placeholder: 'Введите значение'})
+                filter: textFilter({placeholder: 'Поиск'})
             },
             {
                 serial: 4,
                 text: "Просмотры",
                 dataField: "views",
-                filter: numberFilter({placeholder: 'Введите значение'}),
+                filter: numberFilter({placeholder: ' '}),
                 sort: true
             },
             {
@@ -466,9 +460,22 @@ class App extends Component {
                 dataField: "reposts",
                 filter: numberFilter({placeholder: 'Введите значение'}),
                 sort: true
+            }, {
+                serial: 6,
+                text: "Комментарии",
+                dataField: "comments",
+                filter: numberFilter({placeholder: ' '}),
+                sort: true
             },
             {
-                serial: 6,
+                serial: 7,
+                text: "Лайки",
+                dataField: "likes",
+                filter: numberFilter({placeholder: ' '}),
+                sort: true
+            },
+            {
+                serial: 8,
                 text: "Аномальные просмотры",
                 dataField: "is_anomaly",
                 filter: selectFilter({
@@ -479,7 +486,7 @@ class App extends Component {
                 placeholder: ' '
             },
             {
-                serial: 7,
+                serial: 9,
                 text: "Тональный характер",
                 dataField: "sentiment",
                 filter: selectFilter({
